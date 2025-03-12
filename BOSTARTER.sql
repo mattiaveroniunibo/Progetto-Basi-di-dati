@@ -10,3 +10,8 @@ CREATE TABLE UTENTE(
     Anno_Di_Nascita Date,
     Luogo_Di_Nascita varchar(30)
 );
+
+CREATE TABLE SKILL(
+COMPETENZA varchar(20) PRIMARY KEY,
+livello int PRIMARY KEY
+);
