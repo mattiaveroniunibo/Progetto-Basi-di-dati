@@ -347,26 +347,33 @@ END $$
 DELIMITER ;
 
 CREATE VIEW classifica_affidabilita AS
-SELECT u.Nickname
+SELECT u.Nickname, 
+       COUNT(DISTINCT p.Nome) AS Progetti_Creati,
+       COUNT(f.ID) AS Totale_Finanziamenti,
+       IFNULL(COUNT(DISTINCT p.Nome) / NULLIF(COUNT(f.ID), 0), 0) AS Affidabilita
 FROM UTENTE u
 JOIN CREATORE c ON u.Email = c.Email
-ORDER BY u.Affidabilita DESC
-LIMIT 3;
-
-CREATE VIEW progetti_piu_vicini_completamento AS
-SELECT p.Nome, p.Budget, SUM(f.Importo) AS Totale_Finanziamenti,
-       ABS(p.Budget - SUM(f.Importo)) AS Differenza
-FROM PROGETTO p
+LEFT JOIN PROGETTO p ON c.Email = p.Email_Creatore
 LEFT JOIN FINANZIAMENTO f ON p.Nome = f.Nome_Progetto
-WHERE p.Stato = 'aperto'
-GROUP BY p.Nome
-ORDER BY Differenza ASC
+GROUP BY u.Nickname
+ORDER BY Affidabilita DESC
 LIMIT 3;
 
-CREATE VIEW classifica_finanziamenti_erogati AS
-SELECT u.Nickname, SUM(f.Importo) AS Totale_Finanziamenti
-FROM UTENTE u
-JOIN FINANZIAMENTO f ON u.Email = f.Email_Utente
-GROUP BY u.Email
-ORDER BY Totale_Finanziamenti DESC
+-- View per i progetti aperti più vicini al completamento (Top 3)
+CREATE VIEW ProgettiQuasiCompletati AS
+SELECT p.Nome, p.Descrizione, p.Budget - COALESCE(SUM(f.Importo), 0) AS DifferenzaResidua
+FROM Progetto p
+LEFT JOIN Finanziamento f ON p.Nome = f.Nome_Progetto
+WHERE p.Stato = 'APERTI'
+GROUP BY p.Nome, p.Descrizione, p.Budget
+ORDER BY DifferenzaResidua ASC
+LIMIT 3;
+
+-- View per la classifica degli utenti in base ai finanziamenti totali erogati (Top 3)
+CREATE VIEW ClassificaFinanziatori AS
+SELECT u.Nickname
+FROM Utente u
+JOIN Finanziamento f ON u.Email = f.Email_Utente
+GROUP BY u.Nickname
+ORDER BY SUM(f.Importo) DESC
 LIMIT 3;
