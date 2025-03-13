@@ -39,9 +39,10 @@ CREATE TABLE AMMINISTRATORE(
 );
 
 -- Creazione della tabella CREATORE
-CREATE TABLE CREATORE(
+CREATE TABLE CREATORE (
     Email VARCHAR(100) PRIMARY KEY, 
-    FOREIGN KEY (Email) REFERENCES UTENTE(Email) -- Chiave esterna che fa riferimento alla tabella UTENTE
+    Affidabilita INT DEFAULT 0, -- Aggiunta della colonna Affidabilita
+    FOREIGN KEY (Email) REFERENCES UTENTE(Email)
 );
 
 -- Creazione della tabella PROGETTO
