@@ -377,3 +377,9 @@ JOIN Finanziamento f ON u.Email = f.Email_Utente
 GROUP BY u.Nickname
 ORDER BY SUM(f.Importo) DESC
 LIMIT 3;
+
+-- Inserimento dati nella tabella UTENTE
+INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita) VALUES
+('dalia.barone@email.com', 'dalia28', 'password123', 'Dalia', 'Barone', '2004-02-20', 'Termoli'),
+('mattia.veroni@email.com', 'mattiav', 'mypassword', 'Mattia', 'Veroni', '2002-12-31', 'Carpi'),
+('sofia.neamtu@email.com', 'sofia_n', 'securepass', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
