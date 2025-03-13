@@ -164,3 +164,209 @@ CREATE TABLE CANDIDATURA(
     FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email), -- Chiave esterna che fa riferimento alla tabella UTENTE
     FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) -- Chiave esterna che fa riferimento alla tabella PROFILO
 );
+
+DELIMITER $$
+
+-- Autenticazione utente
+CREATE PROCEDURE AutenticaUtente(IN p_Email VARCHAR(100), IN p_Password VARCHAR(255))
+BEGIN
+    DECLARE v_Count INT;
+    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password;
+    IF v_Count = 1 THEN
+        SELECT 'Autenticazione riuscita' AS Messaggio;
+    ELSE
+        SELECT 'Autenticazione fallita' AS Messaggio;
+    END IF;
+END $$
+
+-- Registrazione nuovo utente
+CREATE PROCEDURE RegistraUtente(IN p_Email VARCHAR(100), IN p_Nickname VARCHAR(50), IN p_Password VARCHAR(255), IN p_Nome VARCHAR(50), IN p_Cognome VARCHAR(50), IN p_Anno_Di_Nascita DATE, IN p_Luogo_Di_Nascita VARCHAR(100))
+BEGIN
+    INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita)
+    VALUES (p_Email, p_Nickname, p_Password, p_Nome, p_Cognome, p_Anno_Di_Nascita, p_Luogo_Di_Nascita);
+END $$
+
+-- Inserimento delle proprie skill
+CREATE PROCEDURE InserisciSkillCurriculum(IN p_Email VARCHAR(100), IN p_Competenza VARCHAR(100), IN p_Livello INT)
+BEGIN
+    INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello)
+    VALUES (p_Email, p_Competenza, p_Livello);
+END $$
+
+-- Visualizzazione dei progetti disponibili
+CREATE PROCEDURE VisualizzaProgetti()
+BEGIN
+    SELECT * FROM PROGETTO WHERE Stato = 'aperto';
+END $$
+
+-- Finanziamento di un progetto
+CREATE PROCEDURE FinanziaProgetto(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Importo DECIMAL(10,2), IN p_CodiceReward VARCHAR(100))
+BEGIN
+    INSERT INTO FINANZIAMENTO (Data, Importo, Email_Utente, Codice_Reward, Nome_Progetto)
+    VALUES (CURDATE(), p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
+END $$
+
+-- Scelta della reward a valle del finanziamento di un progetto
+CREATE PROCEDURE SceltaRewardFinanziamento(IN p_Email VARCHAR(100), IN p_CodiceReward VARCHAR(100), IN p_NomeProgetto VARCHAR(100))
+BEGIN
+    DECLARE v_ControlloFinanziamento INT;
+
+    -- Verifica se l'utente ha finanziato il progetto
+    SELECT COUNT(*) INTO v_ControlloFinanziamento
+    FROM FINANZIAMENTO
+    WHERE Email_Utente = p_Email AND Nome_Progetto = p_NomeProgetto;
+
+    IF v_ControlloFinanziamento > 0 THEN
+        -- Inserisce la scelta della reward
+        INSERT INTO FINANZIAMENTO_REWARD (Email_Utente, Codice_Reward, Nome_Progetto)
+        VALUES (p_Email, p_CodiceReward, p_NomeProgetto);
+        SELECT 'Reward scelta con successo' AS Messaggio;
+    ELSE
+        SELECT 'Impossibile scegliere reward: non hai finanziato questo progetto' AS Messaggio;
+    END IF;
+END $$
+
+-- Inserimento di un commento
+CREATE PROCEDURE InserisciCommento(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Testo TEXT)
+BEGIN
+    INSERT INTO COMMENTO (Data, Testo, Nome_Progetto, Email_Utente)
+    VALUES (CURDATE(), p_Testo, p_NomeProgetto, p_Email);
+END $$
+
+-- Inserimento candidatura
+CREATE PROCEDURE InserisciCandidatura(IN p_Email VARCHAR(100), IN p_IDProfilo INT)
+BEGIN
+    INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
+    VALUES (NULL, p_Email, p_IDProfilo);
+END $$
+
+-- Inserimento nuova competenza (solo admin)
+CREATE PROCEDURE InserisciCompetenza(IN p_Competenza VARCHAR(100), IN p_Livello INT)
+BEGIN
+    INSERT INTO SKILL (COMPETENZA, LIVELLO) VALUES (p_Competenza, p_Livello);
+END $$
+
+-- Autenticazione utente con codice di sicurezza (solo per amministratori)
+CREATE PROCEDURE AutenticaUtenteConCodiceSicurezza(IN p_Email VARCHAR(100), IN p_Password VARCHAR(255), IN p_CodiceSicurezza VARCHAR(50))
+BEGIN
+    DECLARE v_Count INT;
+    DECLARE v_CodiceSicurezzaValido INT;
+
+    -- Verifica se l'utente esiste e la password è corretta
+    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password;
+    
+    -- Se l'utente è un amministratore, verifica anche il codice di sicurezza
+    IF v_Count = 1 THEN
+        SELECT COUNT(*) INTO v_CodiceSicurezzaValido 
+        FROM AMMINISTRATORE 
+        WHERE Email = p_Email AND Codice_Sicurezza = p_CodiceSicurezza;
+        
+        IF v_CodiceSicurezzaValido = 1 THEN
+            SELECT 'Autenticazione riuscita' AS Messaggio;
+        ELSE
+            SELECT 'Codice di sicurezza errato' AS Messaggio;
+        END IF;
+    ELSE
+        SELECT 'Autenticazione fallita' AS Messaggio;
+    END IF;
+END $$
+
+-- Inserimento nuovo progetto (solo creatori)
+CREATE PROCEDURE InserisciProgetto(IN p_Nome VARCHAR(100), IN p_Descrizione TEXT, IN p_Foto TEXT, IN p_Budget DECIMAL(10,2), IN p_DataLimite DATE, IN p_EmailCreatore VARCHAR(100))
+BEGIN
+    INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Foto, Stato, Budget, Data_Limite, Email_Creatore)
+    VALUES (p_Nome, p_Descrizione, CURDATE(), p_Foto, 'aperto', p_Budget, p_DataLimite, p_EmailCreatore);
+END $$
+
+-- Inserimento di una reward (solo creatori)
+CREATE PROCEDURE InserisciReward(IN p_Codice VARCHAR(100), IN p_Descrizione TEXT, IN p_Foto TEXT, IN p_NomeProgetto VARCHAR(100))
+BEGIN
+    INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto)
+    VALUES (p_Codice, p_Descrizione, p_Foto, p_NomeProgetto);
+END $$
+
+-- Inserimento risposta ad un commento (solo creatori)
+CREATE PROCEDURE InserisciRisposta(IN p_IDCommento INT, IN p_EmailCreatore VARCHAR(100), IN p_Testo TEXT)
+BEGIN
+    INSERT INTO RISPOSTA (ID_Commento, Email_Creatore, Testo, Data)
+    VALUES (p_IDCommento, p_EmailCreatore, p_Testo, CURDATE());
+END $$
+
+-- Inserimento di un profilo - solo per la realizzazione di un progetto software
+CREATE PROCEDURE InserisciProfiloSoftware(IN p_Nome VARCHAR(100))
+BEGIN
+    INSERT INTO PROFILO (Nome) 
+    VALUES (p_Nome);
+END $$
+
+-- Accettazione candidatura (solo creatori)
+CREATE PROCEDURE AccettaCandidatura(IN p_IDCandidatura INT, IN p_Esito BOOLEAN)
+BEGIN
+    UPDATE CANDIDATURA SET Esito = p_Esito WHERE ID = p_IDCandidatura;
+END $$
+
+-- Trigger per aggiornare l'affidabilità del creatore
+CREATE TRIGGER AggiornaAffidabilita AFTER INSERT ON FINANZIAMENTO
+FOR EACH ROW
+BEGIN
+    UPDATE CREATORE C
+    SET Affidabilita = (SELECT COUNT(DISTINCT P.Nome) / COUNT(*)
+                        FROM PROGETTO P WHERE P.Email_Creatore = C.Email)
+    WHERE C.Email = (SELECT Email_Creatore FROM PROGETTO WHERE Nome = NEW.Nome_Progetto);
+END $$
+
+-- Trigger per cambiare lo stato di un progetto quando il budget è raggiunto
+CREATE TRIGGER ChiudiProgettoBudget AFTER INSERT ON FINANZIAMENTO
+FOR EACH ROW
+BEGIN
+    UPDATE PROGETTO
+    SET Stato = 'chiuso'
+    WHERE Nome = NEW.Nome_Progetto AND 
+          (SELECT SUM(Importo) FROM FINANZIAMENTO WHERE Nome_Progetto = NEW.Nome_Progetto) >= Budget;
+END $$
+
+-- Trigger per incrementare il numero di progetti di un creatore
+CREATE TRIGGER IncrementaNrProgetti AFTER INSERT ON PROGETTO
+FOR EACH ROW
+BEGIN
+    UPDATE CREATORE
+    SET Nr_Progetti = Nr_Progetti + 1
+    WHERE Email = NEW.Email_Creatore;
+END $$
+
+-- Evento per chiudere i progetti scaduti
+CREATE EVENT ChiudiProgettiScaduti
+ON SCHEDULE EVERY 1 DAY
+DO
+BEGIN
+    UPDATE PROGETTO
+    SET Stato = 'chiuso'
+    WHERE Stato = 'aperto' AND Data_Limite < CURDATE();
+END $$
+
+DELIMITER ;
+
+CREATE VIEW classifica_affidabilita AS
+SELECT u.Nickname
+FROM UTENTE u
+JOIN CREATORE c ON u.Email = c.Email
+ORDER BY u.Affidabilita DESC
+LIMIT 3;
+
+CREATE VIEW progetti_piu_vicini_completamento AS
+SELECT p.Nome, p.Budget, SUM(f.Importo) AS Totale_Finanziamenti,
+       ABS(p.Budget - SUM(f.Importo)) AS Differenza
+FROM PROGETTO p
+LEFT JOIN FINANZIAMENTO f ON p.Nome = f.Nome_Progetto
+WHERE p.Stato = 'aperto'
+GROUP BY p.Nome
+ORDER BY Differenza ASC
+LIMIT 3;
+
+CREATE VIEW classifica_finanziamenti_erogati AS
+SELECT u.Nickname, SUM(f.Importo) AS Totale_Finanziamenti
+FROM UTENTE u
+JOIN FINANZIAMENTO f ON u.Email = f.Email_Utente
+GROUP BY u.Email
+ORDER BY Totale_Finanziamenti DESC
+LIMIT 3;
