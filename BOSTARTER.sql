@@ -348,16 +348,10 @@ END $$
 DELIMITER ;
 
 CREATE VIEW classifica_affidabilita AS
-SELECT u.Nickname, 
-       COUNT(DISTINCT p.Nome) AS Progetti_Creati,
-       COUNT(f.ID) AS Totale_Finanziamenti,
-       IFNULL(COUNT(DISTINCT p.Nome) / NULLIF(COUNT(f.ID), 0), 0) AS Affidabilita
+SELECT u.Nickname, c.affidabilita
 FROM UTENTE u
 JOIN CREATORE c ON u.Email = c.Email
-LEFT JOIN PROGETTO p ON c.Email = p.Email_Creatore
-LEFT JOIN FINANZIAMENTO f ON p.Nome = f.Nome_Progetto
-GROUP BY u.Nickname
-ORDER BY Affidabilita DESC
+ORDER BY c.affidabilita DESC
 LIMIT 3;
 
 -- View per i progetti aperti più vicini al completamento (Top 3)
@@ -384,3 +378,26 @@ INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, L
 ('dalia.barone@email.com', 'dalia28', 'password123', 'Dalia', 'Barone', '2004-02-20', 'Termoli'),
 ('mattia.veroni@email.com', 'mattiav', 'mypassword', 'Mattia', 'Veroni', '2002-12-31', 'Carpi'),
 ('sofia.neamtu@email.com', 'sofia_n', 'securepass', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
+
+-- Inserimento dati nella tabella SKILL
+INSERT INTO SKILL (Competenza, Livello) VALUES
+('AI', 3),
+('Machine Learning', 4),
+('Web Development', 5),
+('Database Management', 4),
+('Cybersecurity', 2),
+('Data Analysis', 3),
+('Cloud Computing', 5),
+('Networking', 3),
+('Software Engineering', 4),
+('Embedded Systems', 3);
+
+-- Inserimento dati nella tabella SKILL_CURRICULUM
+INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello) VALUES
+('dalia.barone@email.com', 'Web Development', 5),
+('dalia.barone@email.com', 'Database Management', 4),
+('mattia.veroni@email.com', 'Cybersecurity', 2),
+('mattia.veroni@email.com', 'Networking', 3),
+('sofia.neamtu@email.com', 'Data Analysis', 3),
+('sofia.neamtu@email.com', 'AI', 3),
+('sofia.neamtu@email.com', 'Machine Learning', 4);
