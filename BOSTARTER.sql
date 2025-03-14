@@ -326,14 +326,7 @@ BEGIN
           (SELECT SUM(Importo) FROM FINANZIAMENTO WHERE Nome_Progetto = NEW.Nome_Progetto) >= Budget;
 END $$
 
--- Trigger per incrementare il numero di progetti di un creatore
-CREATE TRIGGER IncrementaNrProgetti AFTER INSERT ON PROGETTO
-FOR EACH ROW
-BEGIN
-    UPDATE CREATORE
-    SET Nr_Progetti = Nr_Progetti + 1
-    WHERE Email = NEW.Email_Creatore;
-END $$
+
 
 -- Evento per chiudere i progetti scaduti
 CREATE EVENT ChiudiProgettiScaduti
@@ -379,25 +372,121 @@ INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, L
 ('mattia.veroni@email.com', 'mattiav', 'mypassword', 'Mattia', 'Veroni', '2002-12-31', 'Carpi'),
 ('sofia.neamtu@email.com', 'sofia_n', 'securepass', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
 
--- Inserimento dati nella tabella SKILL
+-- Inserimento dati nella tabella SKILL (CORRETTO)
 INSERT INTO SKILL (Competenza, Livello) VALUES
-('AI', 3),
-('Machine Learning', 4),
-('Web Development', 5),
-('Database Management', 4),
-('Cybersecurity', 2),
+('AI', 4),
+('Machine Learning', 5),
+('Web Development', 4),
+('Database Management', 3),
+('Cybersecurity', 4),
 ('Data Analysis', 3),
-('Cloud Computing', 5),
+('Cloud Computing', 5), -- Corretto a 5 per matchare SKILL_RICHIESTA
+('Cloud Computing', 4),
 ('Networking', 3),
 ('Software Engineering', 4),
 ('Embedded Systems', 3);
 
--- Inserimento dati nella tabella SKILL_CURRICULUM
+-- Inserimento dati nella tabella SKILL_CURRICULUM (CORRETTO)
 INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello) VALUES
-('dalia.barone@email.com', 'Web Development', 5),
-('dalia.barone@email.com', 'Database Management', 4),
-('mattia.veroni@email.com', 'Cybersecurity', 2),
+('dalia.barone@email.com', 'Web Development', 4),
+('dalia.barone@email.com', 'Database Management', 3),
+('mattia.veroni@email.com', 'Cybersecurity', 4),
 ('mattia.veroni@email.com', 'Networking', 3),
 ('sofia.neamtu@email.com', 'Data Analysis', 3),
-('sofia.neamtu@email.com', 'AI', 3),
-('sofia.neamtu@email.com', 'Machine Learning', 4);
+('sofia.neamtu@email.com', 'AI', 4),
+('sofia.neamtu@email.com', 'Machine Learning', 5);
+
+-- Inserimento dati nella tabella AMMINISTRATORE
+-- Solo alcuni utenti saranno amministratori
+INSERT INTO AMMINISTRATORE (Email, Codice_Sicurezza) VALUES
+('dalia.barone@email.com', 'SEC123'),
+('mattia.veroni@email.com', 'SEC456');
+
+-- Inserimento dati nella tabella CREATORE
+-- Solo alcuni utenti saranno creatori di progetti
+INSERT INTO CREATORE (Email, Affidabilita) VALUES
+('dalia.barone@email.com', 5),
+('mattia.veroni@email.com', 4),
+('sofia.neamtu@email.com', 3);
+
+-- Inserimento dati nella tabella PROGETTO
+INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Foto, Stato, Budget, Data_Limite, Email_Creatore) VALUES
+('SmartHome AI', 'Sistema di automazione domestica basato su AI', '2025-03-01', 'smarthome.jpg', 'aperto', 5000, '2025-06-01', 'dalia.barone@email.com'),
+('EduTech Platform', 'Piattaforma di e-learning avanzata', '2025-02-20', 'edutech.jpg', 'aperto', 8000, '2025-05-15', 'mattia.veroni@email.com'),
+('CyberShield', 'Firewall AI per la sicurezza informatica', '2025-01-15', 'cybershield.jpg', 'chiuso', 12000, '2025-04-30', 'sofia.neamtu@email.com'),
+('AutoPilot System', 'Sistema di guida autonoma per auto', '2025-02-10', 'autopilot.jpg', 'aperto', 15000, '2025-08-01', 'dalia.barone@email.com'),
+('E-Health Monitor', 'Sistema di monitoraggio remoto della salute', '2025-03-05', 'ehealth.jpg', 'aperto', 7000, '2025-06-30', 'mattia.veroni@email.com');
+
+-- Inserimento dati nella tabella HARDWARE (solo per progetti hardware)
+INSERT INTO HARDWARE (Nome) VALUES
+('SmartHome AI'),
+('AutoPilot System');
+
+-- Inserimento dati nella tabella SOFTWARE (solo per progetti software)
+INSERT INTO SOFTWARE (Nome) VALUES
+('EduTech Platform'),
+('CyberShield'),
+('E-Health Monitor');
+
+-- Inserimento dati nella tabella COMPONENTI
+INSERT INTO COMPONENTI (Nome, Descrizione, Prezzo, Quantità) VALUES
+('Sensore di Movimento', 'Sensore per rilevare il movimento in ambienti domestici', 20.00, 10),
+('Modulo Bluetooth', 'Modulo di comunicazione Bluetooth per connessione remota', 15.00, 8),
+('Camera HD', 'Telecamera ad alta risoluzione per sicurezza', 50.00, 5),
+('Motore Elettrico', 'Motore per guida autonoma', 120.00, 4),
+('Sensore LiDAR', 'Sensore per rilevamento ostacoli in guida autonoma', 200.00, 2),
+('Batteria al Litio', 'Batteria ricaricabile ad alta capacità', 90.00, 6),
+('Modulo WiFi', 'Modulo di connessione WiFi per dispositivi embedded', 18.00, 10),
+('Display Touchscreen', 'Schermo touchscreen per interfaccia utente', 75.00, 3);
+
+-- Inserimento dati nella tabella COMPONENTI_HARDWARE
+INSERT INTO COMPONENTI_HARDWARE (Nome_Progetto, Nome_Componente) VALUES
+('SmartHome AI', 'Sensore di Movimento'),
+('SmartHome AI', 'Modulo Bluetooth'),
+('SmartHome AI', 'Camera HD'),
+('AutoPilot System', 'Motore Elettrico'),
+('AutoPilot System', 'Sensore LiDAR'),
+('AutoPilot System', 'Batteria al Litio');
+
+-- Inserimento dati nella tabella PROFILO
+INSERT INTO PROFILO (ID, Nome) VALUES
+(1, 'Esperto AI'),
+(2, 'Sviluppatore Full Stack'),
+(3, 'Analista di Sicurezza'),
+(4, 'Ingegnere DevOps'),
+(5, 'Data Scientist'),
+(6, 'Cloud Architect');
+
+-- Inserimento dati nella tabella PROFILO_SOFTWARE
+INSERT INTO PROFILO_SOFTWARE (Nome_Progetto, ID_Profilo) VALUES
+('EduTech Platform', 1),
+('EduTech Platform', 2),
+('CyberShield', 3),
+('CyberShield', 4),
+('E-Health Monitor', 5),
+('E-Health Monitor', 6);
+
+-- Inserimento dati nella tabella SKILL_RICHIESTA (CORRETTO)
+INSERT INTO SKILL_RICHIESTA (ID_Profilo, Competenza, Livello) VALUES
+(1, 'AI', 4), -- Esperto AI deve avere almeno AI livello 4
+(1, 'Machine Learning', 5), -- Esperto AI deve avere Machine Learning livello 5
+(2, 'Web Development', 4), -- Sviluppatore Full Stack deve sapere Web Dev livello 4
+(2, 'Database Management', 3), -- Sviluppatore Full Stack deve saper gestire DB livello 3
+(3, 'Cybersecurity', 4), -- Analista Sicurezza deve sapere Cybersecurity livello 4
+(4, 'Cloud Computing', 5), -- Ingegnere DevOps deve avere Cloud Computing livello 5
+(5, 'Data Analysis', 3), -- Data Scientist deve avere Data Analysis livello 3
+(5, 'AI', 4), -- Corretto il livello di AI per Data Scientist a 4 (prima era 3)
+(6, 'Cloud Computing', 4), -- Cloud Architect deve sapere Cloud Computing livello 4
+(6, 'Networking', 3); -- Cloud Architect deve sapere Networking livello 3
+
+-- Tabelle commento e risposta in tempo reale
+
+-- Inserimento dati nella tabella REWARD
+INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto) VALUES
+('RWD1', 'Accesso beta esclusivo al prodotto', 'beta_access.jpg', 'SmartHome AI'),
+('RWD2', 'T-shirt personalizzata del progetto', 'tshirt.jpg', 'EduTech Platform'),
+('RWD3', 'Menzione speciale nel sito ufficiale', 'mention.jpg', 'CyberShield'),
+('RWD4', 'Invito a evento esclusivo di presentazione', 'event_invite.jpg', 'AutoPilot System'),
+('RWD5', 'Pacchetto premium di funzioni avanzate', 'premium_pack.jpg', 'E-Health Monitor');
+
+-- Tabella finanziamento e candidatura in tempo reale
