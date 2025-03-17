@@ -1,81 +1,81 @@
-DROP DATABASE IF EXISTS BOTSTARTER;
-CREATE DATABASE IF NOT EXISTS BOTSTARTER;
-
-USE BOTSTARTER;
+-- Eliminazione e Creazione del Database
+DROP DATABASE IF EXISTS BOSTARTER;
+CREATE DATABASE IF NOT EXISTS BOSTARTER;
+USE BOSTARTER;
 
 -- Creazione della tabella UTENTE
 CREATE TABLE UTENTE(
-    Email VARCHAR(100) PRIMARY KEY, -- Email come chiave primaria
-    Nickname VARCHAR(50),
-    Password VARCHAR(255), -- La password potrebbe essere lunga
-    Nome VARCHAR(50),
-    Cognome VARCHAR(50),
-    Anno_Di_Nascita DATE,
-    Luogo_Di_Nascita VARCHAR(100)
+    Email VARCHAR(100) PRIMARY KEY,
+    Nickname VARCHAR(50) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Nome VARCHAR(50) NOT NULL,
+    Cognome VARCHAR(50) NOT NULL,
+    Anno_Di_Nascita DATE NOT NULL,
+    Luogo_Di_Nascita VARCHAR(100) NOT NULL
 );
 
 -- Creazione della tabella SKILL
 CREATE TABLE SKILL(
-    COMPETENZA VARCHAR(100), -- Competenza che può essere lunga
-    LIVELLO INT, -- Livello compreso tra 0 e 5
-    PRIMARY KEY (COMPETENZA, LIVELLO) -- Combinazione di entrambe come chiave primaria
+    COMPETENZA VARCHAR(100),
+    LIVELLO INT CHECK (LIVELLO BETWEEN 0 AND 5),
+    PRIMARY KEY (COMPETENZA, LIVELLO)
 );
 
 -- Creazione della tabella SKILL_Curriculum
 CREATE TABLE SKILL_CURRICULUM(
-    Email_Utente VARCHAR(100), 
+    Email_Utente VARCHAR(100),
     Competenza VARCHAR(100),
     Livello INT,
-    PRIMARY KEY (Email_Utente, Competenza, Livello), -- Combinazione di chiavi
-    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email), -- Chiave esterna che fa riferimento alla tabella UTENTE
-    FOREIGN KEY (Competenza, Livello) REFERENCES SKILL(Competenza, LIVELLO) -- Chiave esterna che fa riferimento alla tabella SKILL
+    PRIMARY KEY (Email_Utente, Competenza, Livello),
+    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email) ON DELETE CASCADE,
+    FOREIGN KEY (Competenza, Livello) REFERENCES SKILL(Competenza, LIVELLO) ON DELETE CASCADE
 );
 
 -- Creazione della tabella AMMINISTRATORE
 CREATE TABLE AMMINISTRATORE(
-    Email VARCHAR(100) PRIMARY KEY, 
-    Codice_Sicurezza VARCHAR(50), -- Codice di sicurezza per gli amministratori
-    FOREIGN KEY (Email) REFERENCES UTENTE(Email) -- Chiave esterna che fa riferimento alla tabella UTENTE
+    Email VARCHAR(100) PRIMARY KEY,
+    Codice_Sicurezza VARCHAR(50) NOT NULL,
+    FOREIGN KEY (Email) REFERENCES UTENTE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella CREATORE
 CREATE TABLE CREATORE (
-    Email VARCHAR(100) PRIMARY KEY, 
-    Affidabilita INT DEFAULT 0, -- Aggiunta della colonna Affidabilita
-    FOREIGN KEY (Email) REFERENCES UTENTE(Email)
+    Email VARCHAR(100) PRIMARY KEY,
+    Nr_Progetti INT DEFAULT 0,
+    Affidabilita FLOAT DEFAULT 0,
+    FOREIGN KEY (Email) REFERENCES UTENTE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella PROGETTO
 CREATE TABLE PROGETTO(
-    Nome VARCHAR(100) PRIMARY KEY, -- Nome del progetto come chiave primaria
-    Descrizione TEXT,
-    Data_Inserimento DATE,
-    Foto TEXT,
-    Stato ENUM('aperto', 'chiuso'), -- Stato del progetto (aperto o chiuso)
-    Budget DECIMAL(10, 2), -- Budget richiesto per il progetto
-    Data_Limite DATE, -- Data limite entro cui deve essere raggiunto il budget
-    Email_Creatore VARCHAR(100), -- Email del creatore
-    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) -- Chiave esterna che fa riferimento alla tabella CREATORE
+    Nome VARCHAR(100) PRIMARY KEY,
+    Descrizione TEXT NOT NULL,
+    Data_Inserimento DATE NOT NULL,
+    Stato ENUM('aperto', 'chiuso') NOT NULL,
+    Budget DECIMAL(10,2) NOT NULL,
+    Data_Limite DATE NOT NULL,
+    Email_Creatore VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella HARDWARE
 CREATE TABLE HARDWARE(
-    Nome VARCHAR(100) PRIMARY KEY, -- Nome del progetto hardware
-    FOREIGN KEY (Nome) REFERENCES PROGETTO(Nome) -- Chiave esterna che fa riferimento alla tabella PROGETTO
+    Nome VARCHAR(100) PRIMARY KEY,
+    FOREIGN KEY (Nome) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
 );
 
 -- Creazione della tabella SOFTWARE
 CREATE TABLE SOFTWARE(
-    Nome VARCHAR(100) PRIMARY KEY, -- Nome del progetto software
-    FOREIGN KEY (Nome) REFERENCES PROGETTO(Nome) -- Chiave esterna che fa riferimento alla tabella PROGETTO
+    Nome VARCHAR(100) PRIMARY KEY,
+    FOREIGN KEY (Nome) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
 );
 
 -- Creazione della tabella COMPONENTI
 CREATE TABLE COMPONENTI(
-    Nome VARCHAR(100) PRIMARY KEY, -- Nome della componente
-    Descrizione TEXT,
-    Prezzo DECIMAL(10, 2), -- Prezzo della componente
-    Quantità INT -- Quantità necessaria della componente
+    Nome VARCHAR(100) PRIMARY KEY,
+    Descrizione TEXT NOT NULL,
+    Prezzo DECIMAL(10,2) NOT NULL,
+    Quantità INT NOT NULL
 );
 
 -- Creazione della tabella COMPONENTI_HARDWARE
@@ -83,14 +83,14 @@ CREATE TABLE COMPONENTI_HARDWARE(
     Nome_Progetto VARCHAR(100),
     Nome_Componente VARCHAR(100),
     PRIMARY KEY (Nome_Progetto, Nome_Componente),
-    FOREIGN KEY (Nome_Progetto) REFERENCES HARDWARE(Nome), -- Chiave esterna che fa riferimento alla tabella HARDWARE
-    FOREIGN KEY (Nome_Componente) REFERENCES COMPONENTI(Nome) -- Chiave esterna che fa riferimento alla tabella COMPONENTI
+    FOREIGN KEY (Nome_Progetto) REFERENCES HARDWARE(Nome) ON DELETE CASCADE,
+    FOREIGN KEY (Nome_Componente) REFERENCES COMPONENTI(Nome) ON DELETE CASCADE
 );
 
 -- Creazione della tabella PROFILO
 CREATE TABLE PROFILO(
-    ID INT PRIMARY KEY, 
-    Nome VARCHAR(100) -- Nome del profilo (ad esempio "Esperto AI")
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Nome VARCHAR(100) NOT NULL
 );
 
 -- Creazione della tabella PROFILO_SOFTWARE
@@ -98,213 +98,144 @@ CREATE TABLE PROFILO_SOFTWARE(
     Nome_Progetto VARCHAR(100),
     ID_Profilo INT,
     PRIMARY KEY (Nome_Progetto, ID_Profilo),
-    FOREIGN KEY (Nome_Progetto) REFERENCES SOFTWARE(Nome), -- Chiave esterna che fa riferimento alla tabella SOFTWARE
-    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) -- Chiave esterna che fa riferimento alla tabella PROFILO
+    FOREIGN KEY (Nome_Progetto) REFERENCES SOFTWARE(Nome) ON DELETE CASCADE,
+    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) ON DELETE CASCADE
 );
 
 -- Creazione della tabella SKILL_RICHIESTA
 CREATE TABLE SKILL_RICHIESTA(
     ID_Profilo INT,
     Competenza VARCHAR(100),
-    Livello INT, -- Livello richiesto per quella skill
+    Livello INT,
     PRIMARY KEY (ID_Profilo, Competenza, Livello),
-    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID), -- Chiave esterna che fa riferimento alla tabella PROFILO
-    FOREIGN KEY (Competenza, Livello) REFERENCES SKILL(Competenza, LIVELLO) -- Chiave esterna che fa riferimento alla tabella SKILL
+    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Competenza, Livello) REFERENCES SKILL(Competenza, LIVELLO) ON DELETE CASCADE
 );
 
 -- Creazione della tabella COMMENTO
 CREATE TABLE COMMENTO(
-    ID INT PRIMARY KEY,
-    Data DATE, -- Data di inserimento del commento
-    Testo TEXT, -- Testo del commento
-    Nome_Progetto VARCHAR(100), -- Progetto a cui si riferisce il commento
-    Email_Utente VARCHAR(100), -- Email dell'utente che ha scritto il commento
-    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome), -- Chiave esterna che fa riferimento alla tabella PROGETTO
-    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email) -- Chiave esterna che fa riferimento alla tabella UTENTE
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Testo TEXT NOT NULL,
+    Nome_Progetto VARCHAR(100) NOT NULL,
+    Email_Utente VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE,
+    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella RISPOSTA
 CREATE TABLE RISPOSTA(
-    ID_Commento INT,
-    Email_Creatore VARCHAR(100),
-    Testo TEXT, -- Testo della risposta
-    Data DATE, -- Data di inserimento della risposta
-    PRIMARY KEY (ID_Commento),
-    FOREIGN KEY (ID_Commento) REFERENCES COMMENTO(ID), -- Chiave esterna che fa riferimento alla tabella COMMENTO
-    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) -- Chiave esterna che fa riferimento alla tabella CREATORE
+    ID_Commento INT PRIMARY KEY,
+    Email_Creatore VARCHAR(100) NOT NULL,
+    Testo TEXT NOT NULL,
+    Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ID_Commento) REFERENCES COMMENTO(ID) ON DELETE CASCADE,
+    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella REWARD
 CREATE TABLE REWARD(
-    Codice VARCHAR(100) PRIMARY KEY, -- Codice della reward
-    Descrizione TEXT, -- Descrizione della reward
-    Foto TEXT, -- Foto associata alla reward
-    Nome_Progetto VARCHAR(100), -- Progetto a cui è associata la reward
-    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) -- Chiave esterna che fa riferimento alla tabella PROGETTO
+    Codice VARCHAR(100) PRIMARY KEY,
+    Descrizione TEXT NOT NULL,
+    Foto TEXT
+);
+
+-- Creazione della tabella PROGETTO_REWARD
+CREATE TABLE PROGETTO_REWARD(
+    Nome_Progetto VARCHAR(100),
+    Codice_Reward VARCHAR(100),
+    PRIMARY KEY (Nome_Progetto, Codice_Reward),
+    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE,
+    FOREIGN KEY (Codice_Reward) REFERENCES REWARD(Codice) ON DELETE CASCADE
 );
 
 -- Creazione della tabella FINANZIAMENTO
 CREATE TABLE FINANZIAMENTO(
-    ID INT PRIMARY KEY,
-    Data DATE, -- Data del finanziamento
-    Importo DECIMAL(10, 2), -- Importo del finanziamento
-    Email_Utente VARCHAR(100), -- Email dell'utente che finanzia
-    Codice_Reward VARCHAR(100), -- Codice della reward scelta
-    Nome_Progetto VARCHAR(100), -- Nome del progetto finanziato
-    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email), -- Chiave esterna che fa riferimento alla tabella UTENTE
-    FOREIGN KEY (Codice_Reward) REFERENCES REWARD(Codice), -- Chiave esterna che fa riferimento alla tabella REWARD
-    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) -- Chiave esterna che fa riferimento alla tabella PROGETTO
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    Importo DECIMAL(10,2) NOT NULL,
+    Email_Utente VARCHAR(100) NOT NULL,
+    Codice_Reward VARCHAR(100),
+    Nome_Progetto VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email) ON DELETE CASCADE,
+    FOREIGN KEY (Codice_Reward) REFERENCES REWARD(Codice) ON DELETE SET NULL,
+    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
 );
 
 -- Creazione della tabella CANDIDATURA
 CREATE TABLE CANDIDATURA(
-    ID INT PRIMARY KEY, 
-    Esito BOOLEAN, -- Esito della candidatura
-    Email_Utente VARCHAR(100), -- Email dell'utente che si è candidato
-    ID_Profilo INT, -- Profilo a cui si è candidati
-    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email), -- Chiave esterna che fa riferimento alla tabella UTENTE
-    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) -- Chiave esterna che fa riferimento alla tabella PROFILO
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Esito BOOLEAN DEFAULT FALSE,
+    Email_Utente VARCHAR(100) NOT NULL,
+    ID_Profilo INT NOT NULL,
+    FOREIGN KEY (Email_Utente) REFERENCES UTENTE(Email) ON DELETE CASCADE,
+    FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) ON DELETE CASCADE
 );
 
-DELIMITER $$
-
--- Autenticazione utente
+-- Stored Procedure per autenticazione utente
+DELIMITER //
 CREATE PROCEDURE AutenticaUtente(IN p_Email VARCHAR(100), IN p_Password VARCHAR(255))
 BEGIN
     DECLARE v_Count INT;
-    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password;
+    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password LIMIT 1;
     IF v_Count = 1 THEN
         SELECT 'Autenticazione riuscita' AS Messaggio;
     ELSE
         SELECT 'Autenticazione fallita' AS Messaggio;
     END IF;
-END $$
+END //
+DELIMITER ;
 
--- Registrazione nuovo utente
+-- Stored Procedure per la registrazione utente
+DELIMITER //
 CREATE PROCEDURE RegistraUtente(IN p_Email VARCHAR(100), IN p_Nickname VARCHAR(50), IN p_Password VARCHAR(255), IN p_Nome VARCHAR(50), IN p_Cognome VARCHAR(50), IN p_Anno_Di_Nascita DATE, IN p_Luogo_Di_Nascita VARCHAR(100))
 BEGIN
     INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita)
     VALUES (p_Email, p_Nickname, p_Password, p_Nome, p_Cognome, p_Anno_Di_Nascita, p_Luogo_Di_Nascita);
-END $$
+END //
+DELIMITER ;
 
--- Inserimento delle proprie skill
-CREATE PROCEDURE InserisciSkillCurriculum(IN p_Email VARCHAR(100), IN p_Competenza VARCHAR(100), IN p_Livello INT)
-BEGIN
-    INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello)
-    VALUES (p_Email, p_Competenza, p_Livello);
-END $$
-
--- Visualizzazione dei progetti disponibili
-CREATE PROCEDURE VisualizzaProgetti()
-BEGIN
-    SELECT * FROM PROGETTO WHERE Stato = 'aperto';
-END $$
-
--- Finanziamento di un progetto
-CREATE PROCEDURE FinanziaProgetto(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Importo DECIMAL(10,2), IN p_CodiceReward VARCHAR(100))
-BEGIN
-    INSERT INTO FINANZIAMENTO (Data, Importo, Email_Utente, Codice_Reward, Nome_Progetto)
-    VALUES (CURDATE(), p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
-END $$
-
--- Scelta della reward a valle del finanziamento di un progetto
-CREATE PROCEDURE SceltaRewardFinanziamento(IN p_Email VARCHAR(100), IN p_CodiceReward VARCHAR(100), IN p_NomeProgetto VARCHAR(100))
-BEGIN
-    DECLARE v_ControlloFinanziamento INT;
-
-    -- Verifica se l'utente ha finanziato il progetto
-    SELECT COUNT(*) INTO v_ControlloFinanziamento
-    FROM FINANZIAMENTO
-    WHERE Email_Utente = p_Email AND Nome_Progetto = p_NomeProgetto;
-
-    IF v_ControlloFinanziamento > 0 THEN
-        -- Inserisce la scelta della reward
-        INSERT INTO FINANZIAMENTO_REWARD (Email_Utente, Codice_Reward, Nome_Progetto)
-        VALUES (p_Email, p_CodiceReward, p_NomeProgetto);
-        SELECT 'Reward scelta con successo' AS Messaggio;
-    ELSE
-        SELECT 'Impossibile scegliere reward: non hai finanziato questo progetto' AS Messaggio;
-    END IF;
-END $$
-
--- Inserimento di un commento
+-- Stored Procedure per l'inserimento di un commento
+DELIMITER //
 CREATE PROCEDURE InserisciCommento(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Testo TEXT)
 BEGIN
     INSERT INTO COMMENTO (Data, Testo, Nome_Progetto, Email_Utente)
     VALUES (CURDATE(), p_Testo, p_NomeProgetto, p_Email);
-END $$
+END //
+DELIMITER ;
 
--- Inserimento candidatura
+-- Stored Procedure per il finanziamento di un progetto
+DELIMITER //
+CREATE PROCEDURE FinanziaProgetto(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Importo DECIMAL(10,2), IN p_CodiceReward VARCHAR(100))
+BEGIN
+    INSERT INTO FINANZIAMENTO (Data, Importo, Email_Utente, Codice_Reward, Nome_Progetto)
+    VALUES (CURDATE(), p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
+END //
+DELIMITER ;
+
+-- Stored Procedure per l'inserimento di una candidatura
+DELIMITER //
 CREATE PROCEDURE InserisciCandidatura(IN p_Email VARCHAR(100), IN p_IDProfilo INT)
 BEGIN
     INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
-    VALUES (NULL, p_Email, p_IDProfilo);
-END $$
+    VALUES (FALSE, p_Email, p_IDProfilo);
+END //
+DELIMITER ;
 
--- Inserimento nuova competenza (solo admin)
-CREATE PROCEDURE InserisciCompetenza(IN p_Competenza VARCHAR(100), IN p_Livello INT)
-BEGIN
-    INSERT INTO SKILL (COMPETENZA, LIVELLO) VALUES (p_Competenza, p_Livello);
-END $$
-
--- Autenticazione utente con codice di sicurezza (solo per amministratori)
-CREATE PROCEDURE AutenticaUtenteConCodiceSicurezza(IN p_Email VARCHAR(100), IN p_Password VARCHAR(255), IN p_CodiceSicurezza VARCHAR(50))
-BEGIN
-    DECLARE v_Count INT;
-    DECLARE v_CodiceSicurezzaValido INT;
-
-    -- Verifica se l'utente esiste e la password è corretta
-    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password;
-    
-    -- Se l'utente è un amministratore, verifica anche il codice di sicurezza
-    IF v_Count = 1 THEN
-        SELECT COUNT(*) INTO v_CodiceSicurezzaValido 
-        FROM AMMINISTRATORE 
-        WHERE Email = p_Email AND Codice_Sicurezza = p_CodiceSicurezza;
-        
-        IF v_CodiceSicurezzaValido = 1 THEN
-            SELECT 'Autenticazione riuscita' AS Messaggio;
-        ELSE
-            SELECT 'Codice di sicurezza errato' AS Messaggio;
-        END IF;
-    ELSE
-        SELECT 'Autenticazione fallita' AS Messaggio;
-    END IF;
-END $$
-
--- Inserimento nuovo progetto (solo creatori)
-CREATE PROCEDURE InserisciProgetto(IN p_Nome VARCHAR(100), IN p_Descrizione TEXT, IN p_Foto TEXT, IN p_Budget DECIMAL(10,2), IN p_DataLimite DATE, IN p_EmailCreatore VARCHAR(100))
-BEGIN
-    INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Foto, Stato, Budget, Data_Limite, Email_Creatore)
-    VALUES (p_Nome, p_Descrizione, CURDATE(), p_Foto, 'aperto', p_Budget, p_DataLimite, p_EmailCreatore);
-END $$
-
--- Inserimento di una reward (solo creatori)
-CREATE PROCEDURE InserisciReward(IN p_Codice VARCHAR(100), IN p_Descrizione TEXT, IN p_Foto TEXT, IN p_NomeProgetto VARCHAR(100))
-BEGIN
-    INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto)
-    VALUES (p_Codice, p_Descrizione, p_Foto, p_NomeProgetto);
-END $$
-
--- Inserimento risposta ad un commento (solo creatori)
-CREATE PROCEDURE InserisciRisposta(IN p_IDCommento INT, IN p_EmailCreatore VARCHAR(100), IN p_Testo TEXT)
-BEGIN
-    INSERT INTO RISPOSTA (ID_Commento, Email_Creatore, Testo, Data)
-    VALUES (p_IDCommento, p_EmailCreatore, p_Testo, CURDATE());
-END $$
-
--- Inserimento di un profilo - solo per la realizzazione di un progetto software
-CREATE PROCEDURE InserisciProfiloSoftware(IN p_Nome VARCHAR(100))
-BEGIN
-    INSERT INTO PROFILO (Nome) 
-    VALUES (p_Nome);
-END $$
-
--- Accettazione candidatura (solo creatori)
+-- Stored Procedure per accettare una candidatura
+DELIMITER //
 CREATE PROCEDURE AccettaCandidatura(IN p_IDCandidatura INT, IN p_Esito BOOLEAN)
 BEGIN
     UPDATE CANDIDATURA SET Esito = p_Esito WHERE ID = p_IDCandidatura;
-END $$
+END //
+DELIMITER ;
+
+-- Stored Procedure per inserire una nuova skill
+DELIMITER //
+CREATE PROCEDURE InserisciSkill(IN p_Competenza VARCHAR(100), IN p_Livello INT)
+BEGIN
+    INSERT INTO SKILL (COMPETENZA, LIVELLO) VALUES (p_Competenza, p_Livello);
+END //
 
 -- Trigger per aggiornare l'affidabilità del creatore
 CREATE TRIGGER AggiornaAffidabilita AFTER INSERT ON FINANZIAMENTO
@@ -410,12 +341,12 @@ INSERT INTO CREATORE (Email, Affidabilita) VALUES
 ('sofia.neamtu@email.com', 3);
 
 -- Inserimento dati nella tabella PROGETTO
-INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Foto, Stato, Budget, Data_Limite, Email_Creatore) VALUES
-('SmartHome AI', 'Sistema di automazione domestica basato su AI', '2025-03-01', 'smarthome.jpg', 'aperto', 5000, '2025-06-01', 'dalia.barone@email.com'),
-('EduTech Platform', 'Piattaforma di e-learning avanzata', '2025-02-20', 'edutech.jpg', 'aperto', 8000, '2025-05-15', 'mattia.veroni@email.com'),
-('CyberShield', 'Firewall AI per la sicurezza informatica', '2025-01-15', 'cybershield.jpg', 'chiuso', 12000, '2025-04-30', 'sofia.neamtu@email.com'),
-('AutoPilot System', 'Sistema di guida autonoma per auto', '2025-02-10', 'autopilot.jpg', 'aperto', 15000, '2025-08-01', 'dalia.barone@email.com'),
-('E-Health Monitor', 'Sistema di monitoraggio remoto della salute', '2025-03-05', 'ehealth.jpg', 'aperto', 7000, '2025-06-30', 'mattia.veroni@email.com');
+INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Stato, Budget, Data_Limite, Email_Creatore) VALUES
+('SmartHome AI', 'Sistema di automazione domestica basato su AI', '2025-03-01','aperto', 5000, '2025-06-01', 'dalia.barone@email.com'),
+('EduTech Platform', 'Piattaforma di e-learning avanzata', '2025-02-20','aperto', 8000, '2025-05-15', 'mattia.veroni@email.com'),
+('CyberShield', 'Firewall AI per la sicurezza informatica', '2025-01-15', 'chiuso', 12000, '2025-04-30', 'sofia.neamtu@email.com'),
+('AutoPilot System', 'Sistema di guida autonoma per auto', '2025-02-10', 'aperto', 15000, '2025-08-01', 'dalia.barone@email.com'),
+('E-Health Monitor', 'Sistema di monitoraggio remoto della salute', '2025-03-05','aperto', 7000, '2025-06-30', 'mattia.veroni@email.com');
 
 -- Inserimento dati nella tabella HARDWARE (solo per progetti hardware)
 INSERT INTO HARDWARE (Nome) VALUES
@@ -482,11 +413,11 @@ INSERT INTO SKILL_RICHIESTA (ID_Profilo, Competenza, Livello) VALUES
 -- Tabelle commento e risposta in tempo reale
 
 -- Inserimento dati nella tabella REWARD
-INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto) VALUES
-('RWD1', 'Accesso beta esclusivo al prodotto', 'beta_access.jpg', 'SmartHome AI'),
-('RWD2', 'T-shirt personalizzata del progetto', 'tshirt.jpg', 'EduTech Platform'),
-('RWD3', 'Menzione speciale nel sito ufficiale', 'mention.jpg', 'CyberShield'),
-('RWD4', 'Invito a evento esclusivo di presentazione', 'event_invite.jpg', 'AutoPilot System'),
-('RWD5', 'Pacchetto premium di funzioni avanzate', 'premium_pack.jpg', 'E-Health Monitor');
+INSERT INTO REWARD (Codice, Descrizione, Foto) VALUES
+('RWD1', 'Accesso beta esclusivo al prodotto', 'beta_access.jpg'),
+('RWD2', 'T-shirt personalizzata del progetto', 'tshirt.jpg'),
+('RWD3', 'Menzione speciale nel sito ufficiale', 'mention.jpg'),
+('RWD4', 'Invito a evento esclusivo di presentazione', 'event_invite.jpg'),
+('RWD5', 'Pacchetto premium di funzioni avanzate', 'premium_pack.jpg');
 
 -- Tabella finanziamento e candidatura in tempo reale

@@ -1,0 +1,72 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+/* Navbar */
+nav {
+    background-color: #222;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+    display: flex;
+}
+
+.nav-links li {
+    margin: 0 15px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 50px;
+    background-color: #007BFF;
+    color: white;
+}
+
+.hero h1 {
+    font-size: 36px;
+}
+
+/* Progetti */
+.progetti-container {
+    width: 80%;
+    margin: auto;
+    padding: 20px;
+}
+
+.progetto-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.progetto-card h3 {
+    color: #007BFF;
+}
+
+.progetto-card p {
+    color: #333;
+}
