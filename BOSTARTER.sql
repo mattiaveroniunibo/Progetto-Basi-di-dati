@@ -257,8 +257,6 @@ BEGIN
           (SELECT SUM(Importo) FROM FINANZIAMENTO WHERE Nome_Progetto = NEW.Nome_Progetto) >= Budget;
 END $$
 
-
-
 -- Evento per chiudere i progetti scaduti
 CREATE EVENT ChiudiProgettiScaduti
 ON SCHEDULE EVERY 1 DAY
@@ -301,7 +299,7 @@ LIMIT 3;
 INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita) VALUES
 ('dalia.barone@email.com', 'dalia28', 'password123', 'Dalia', 'Barone', '2004-02-20', 'Termoli'),
 ('mattia.veroni@email.com', 'mattiav', 'mypassword', 'Mattia', 'Veroni', '2002-12-31', 'Carpi'),
-('sofia.neamtu@email.com', 'sofia_n', 'securepass', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
+('sofia.neamtu@email.com', 'sofia_n', 'sofia12345', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
 
 -- Inserimento dati nella tabella SKILL (CORRETTO)
 INSERT INTO SKILL (Competenza, Livello) VALUES

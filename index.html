@@ -1,96 +1,31 @@
+<!-- index.html - File principale -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Progetti Disponibili</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #f8f8f8; 
-            padding: 20px;
-        }
-        h2 {
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-        .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: 300px;
-            padding: 15px;
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: scale(1.05);
-        }
-        .card h3 {
-            margin-top: 0;
-            color: #333;
-        }
-        .card p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
-        }
-        .status {
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .stato-aperto {
-            color: green;
-        }
-        .stato-chiuso {
-            color: red;
-        }
-    </style>
+    <title>BOSTARTER - Crowdfunding per Progetti</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h2>Progetti Disponibili</h2>
-    <div class="container" id="projectsGrid">
-        <!-- Qui verranno caricati i progetti -->
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">BOSTARTER</div>
+        <ul class="nav-links">
+            <li><a href="#" onclick="loadPage('home')">Home</a></li>
+            <li><a href="#" onclick="loadPage('progetti')">Progetti</a></li>
+            <li><a href="#" onclick="loadPage('statistiche')">Statistiche</a></li>
+            <li><a href="#" onclick="loadPage('profilo')">Profilo</a></li>
+            <li><a href="#" onclick="loadPage('login')">Accedi</a></li>
+        </ul>
+    </nav>
+
+    <!-- Contenuto dinamico -->
+    <div id="content" class="content-container">
+        <!-- Qui verranno caricati i componenti -->
     </div>
 
-    <script>
-        async function loadProjects() {
-            try {
-                let response = await fetch("get_projects.php");
-                if (!response.ok) {
-                    throw new Error("Errore nel caricamento dei dati");
-                }
-                let projects = await response.json();
-                console.log("Dati ricevuti dall'API:", projects);
-
-                let container = document.getElementById("projectsGrid");
-                container.innerHTML = "";
-
-                projects.forEach(project => {
-                    let statoClass = project.Stato === "aperto" ? "stato-aperto" : "stato-chiuso";
-                    let card = `
-                        <div class="card">
-                            <h3>${project.Nome}</h3>
-                            <p><strong>Creatore:</strong> ${project.Creatore}</p>
-                            <p><strong>Descrizione:</strong> ${project.Descrizione}</p>
-                            <p><strong>Budget:</strong> € ${project.Budget}</p>
-                            <p><strong>Finanziamenti Ricevuti:</strong> € ${project.FinanziamentiRicevuti}</p>
-                            <p><strong>Data Limite:</strong> ${project.Data_Limite}</p>
-                            <p class="status ${statoClass}"><strong>Stato:</strong> ${project.Stato}</p>
-                        </div>
-                    `;
-                    container.innerHTML += card;
-                });
-            } catch (error) {
-                console.error("Errore:", error);
-            }
-        }
-
-        window.onload = loadProjects;
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
