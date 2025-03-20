@@ -47,10 +47,12 @@ CREATE TABLE CREATORE (
 );
 
 -- Creazione della tabella PROGETTO
+-- Ho aggiunto la colonna Foto TEXT (opzionale) 
 CREATE TABLE PROGETTO(
     Nome VARCHAR(100) PRIMARY KEY,
     Descrizione TEXT NOT NULL,
     Data_Inserimento DATE NOT NULL,
+    Foto TEXT,                         -- Aggiunta se da traccia
     Stato ENUM('aperto', 'chiuso') NOT NULL,
     Budget DECIMAL(10,2) NOT NULL,
     Data_Limite DATE NOT NULL,
@@ -75,7 +77,7 @@ CREATE TABLE COMPONENTI(
     Nome VARCHAR(100) PRIMARY KEY,
     Descrizione TEXT NOT NULL,
     Prezzo DECIMAL(10,2) NOT NULL,
-    Quantità INT NOT NULL
+    Quantita INT NOT NULL     -- Rinominato da QuantitÃ  a Quantita
 );
 
 -- Creazione della tabella COMPONENTI_HARDWARE
@@ -172,89 +174,146 @@ CREATE TABLE CANDIDATURA(
     FOREIGN KEY (ID_Profilo) REFERENCES PROFILO(ID) ON DELETE CASCADE
 );
 
+--------------------------------------------------------------------
+-- Delimitatore per le procedure e i trigger
+--------------------------------------------------------------------
+
+DELIMITER $$
+
 -- Stored Procedure per autenticazione utente
-DELIMITER //
-CREATE PROCEDURE AutenticaUtente(IN p_Email VARCHAR(100), IN p_Password VARCHAR(255))
+CREATE PROCEDURE AutenticaUtente(
+    IN p_Email VARCHAR(100),
+    IN p_Password VARCHAR(255)
+)
 BEGIN
     DECLARE v_Count INT;
-    SELECT COUNT(*) INTO v_Count FROM UTENTE WHERE Email = p_Email AND Password = p_Password LIMIT 1;
+    SELECT COUNT(*) INTO v_Count
+    FROM UTENTE
+    WHERE Email = p_Email AND Password = p_Password
+    LIMIT 1;
     IF v_Count = 1 THEN
         SELECT 'Autenticazione riuscita' AS Messaggio;
     ELSE
         SELECT 'Autenticazione fallita' AS Messaggio;
     END IF;
-END //
-DELIMITER ;
+END $$
 
 -- Stored Procedure per la registrazione utente
-DELIMITER //
-CREATE PROCEDURE RegistraUtente(IN p_Email VARCHAR(100), IN p_Nickname VARCHAR(50), IN p_Password VARCHAR(255), IN p_Nome VARCHAR(50), IN p_Cognome VARCHAR(50), IN p_Anno_Di_Nascita DATE, IN p_Luogo_Di_Nascita VARCHAR(100))
+CREATE PROCEDURE RegistraUtente(
+    IN p_Email VARCHAR(100),
+    IN p_Nickname VARCHAR(50),
+    IN p_Password VARCHAR(255),
+    IN p_Nome VARCHAR(50),
+    IN p_Cognome VARCHAR(50),
+    IN p_Anno_Di_Nascita DATE,
+    IN p_Luogo_Di_Nascita VARCHAR(100)
+)
 BEGIN
-    INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita)
-    VALUES (p_Email, p_Nickname, p_Password, p_Nome, p_Cognome, p_Anno_Di_Nascita, p_Luogo_Di_Nascita);
-END //
-DELIMITER ;
+    INSERT INTO UTENTE (
+        Email,
+        Nickname,
+        Password,
+        Nome,
+        Cognome,
+        Anno_Di_Nascita,
+        Luogo_Di_Nascita
+    )
+    VALUES (
+        p_Email,
+        p_Nickname,
+        p_Password,
+        p_Nome,
+        p_Cognome,
+        p_Anno_Di_Nascita,
+        p_Luogo_Di_Nascita
+    );
+END $$
 
 -- Stored Procedure per l'inserimento di un commento
-DELIMITER //
-CREATE PROCEDURE InserisciCommento(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Testo TEXT)
+CREATE PROCEDURE InserisciCommento(
+    IN p_Email VARCHAR(100),
+    IN p_NomeProgetto VARCHAR(100),
+    IN p_Testo TEXT
+)
 BEGIN
     INSERT INTO COMMENTO (Data, Testo, Nome_Progetto, Email_Utente)
-    VALUES (CURDATE(), p_Testo, p_NomeProgetto, p_Email);
-END //
-DELIMITER ;
+    VALUES (NOW(), p_Testo, p_NomeProgetto, p_Email);
+END $$
 
 -- Stored Procedure per il finanziamento di un progetto
-DELIMITER //
-CREATE PROCEDURE FinanziaProgetto(IN p_Email VARCHAR(100), IN p_NomeProgetto VARCHAR(100), IN p_Importo DECIMAL(10,2), IN p_CodiceReward VARCHAR(100))
+CREATE PROCEDURE FinanziaProgetto(
+    IN p_Email VARCHAR(100),
+    IN p_NomeProgetto VARCHAR(100),
+    IN p_Importo DECIMAL(10,2),
+    IN p_CodiceReward VARCHAR(100)
+)
 BEGIN
-    INSERT INTO FINANZIAMENTO (Data, Importo, Email_Utente, Codice_Reward, Nome_Progetto)
-    VALUES (CURDATE(), p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
-END //
-DELIMITER ;
+    INSERT INTO FINANZIAMENTO (Importo, Email_Utente, Codice_Reward, Nome_Progetto)
+    VALUES (p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
+END $$
 
 -- Stored Procedure per l'inserimento di una candidatura
-DELIMITER //
-CREATE PROCEDURE InserisciCandidatura(IN p_Email VARCHAR(100), IN p_IDProfilo INT)
+CREATE PROCEDURE InserisciCandidatura(
+    IN p_Email VARCHAR(100),
+    IN p_IDProfilo INT
+)
 BEGIN
     INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
     VALUES (FALSE, p_Email, p_IDProfilo);
-END //
-DELIMITER ;
+END $$
 
 -- Stored Procedure per accettare una candidatura
-DELIMITER //
-CREATE PROCEDURE AccettaCandidatura(IN p_IDCandidatura INT, IN p_Esito BOOLEAN)
+CREATE PROCEDURE AccettaCandidatura(
+    IN p_IDCandidatura INT,
+    IN p_Esito BOOLEAN
+)
 BEGIN
-    UPDATE CANDIDATURA SET Esito = p_Esito WHERE ID = p_IDCandidatura;
-END //
-DELIMITER ;
+    UPDATE CANDIDATURA
+    SET Esito = p_Esito
+    WHERE ID = p_IDCandidatura;
+END $$
 
 -- Stored Procedure per inserire una nuova skill
-DELIMITER //
-CREATE PROCEDURE InserisciSkill(IN p_Competenza VARCHAR(100), IN p_Livello INT)
+CREATE PROCEDURE InserisciSkill(
+    IN p_Competenza VARCHAR(100),
+    IN p_Livello INT
+)
 BEGIN
-    INSERT INTO SKILL (COMPETENZA, LIVELLO) VALUES (p_Competenza, p_Livello);
-END //
+    INSERT INTO SKILL (COMPETENZA, LIVELLO)
+    VALUES (p_Competenza, p_Livello);
+END $$
 
--- Trigger per aggiornare l'affidabilità del creatore
-CREATE TRIGGER AggiornaAffidabilita AFTER INSERT ON FINANZIAMENTO
+-- Trigger per aggiornare l'affidabilita del creatore
+CREATE TRIGGER AggiornaAffidabilita
+AFTER INSERT ON FINANZIAMENTO
 FOR EACH ROW
 BEGIN
     UPDATE CREATORE C
-    SET Affidabilita = (SELECT COUNT(DISTINCT P.Nome) / COUNT(*)
-                        FROM PROGETTO P WHERE P.Email_Creatore = C.Email)
-    WHERE C.Email = (SELECT Email_Creatore FROM PROGETTO WHERE Nome = NEW.Nome_Progetto);
+    SET Affidabilita = (
+        SELECT COUNT(DISTINCT P.Nome) / COUNT(*)
+        FROM PROGETTO P
+        WHERE P.Email_Creatore = C.Email
+    )
+    WHERE C.Email = (
+        SELECT Email_Creatore
+        FROM PROGETTO
+        WHERE Nome = NEW.Nome_Progetto
+    );
 END $$
 
--- Trigger per cambiare lo stato di un progetto quando il budget è raggiunto
-CREATE TRIGGER ChiudiProgettoBudget AFTER INSERT ON FINANZIAMENTO
+-- Trigger per cambiare lo stato di un progetto quando il budget Ã¨ raggiunto
+CREATE TRIGGER ChiudiProgettoBudget
+AFTER INSERT ON FINANZIAMENTO
 FOR EACH ROW
 BEGIN
     UPDATE PROGETTO
     SET Stato = 'chiuso'
-    WHERE Nome = NEW.Nome_Progetto AND 
-          (SELECT SUM(Importo) FROM FINANZIAMENTO WHERE Nome_Progetto = NEW.Nome_Progetto) >= Budget;
+    WHERE Nome = NEW.Nome_Progetto
+      AND (
+         SELECT SUM(Importo)
+         FROM FINANZIAMENTO
+         WHERE Nome_Progetto = NEW.Nome_Progetto
+      ) >= Budget;
 END $$
 
 -- Evento per chiudere i progetti scaduti
@@ -269,6 +328,7 @@ END $$
 
 DELIMITER ;
 
+-- View classifica_affidabilita
 CREATE VIEW classifica_affidabilita AS
 SELECT u.Nickname, c.affidabilita
 FROM UTENTE u
@@ -277,11 +337,14 @@ ORDER BY c.affidabilita DESC
 LIMIT 3;
 
 -- View per i progetti aperti più vicini al completamento (Top 3)
+-- CORREZIONE: usiamo 'aperto' invece di 'APERTI'
 CREATE VIEW ProgettiQuasiCompletati AS
-SELECT p.Nome, p.Descrizione, p.Budget - COALESCE(SUM(f.Importo), 0) AS DifferenzaResidua
-FROM Progetto p
-LEFT JOIN Finanziamento f ON p.Nome = f.Nome_Progetto
-WHERE p.Stato = 'APERTI'
+SELECT p.Nome,
+       p.Descrizione,
+       p.Budget - COALESCE(SUM(f.Importo), 0) AS DifferenzaResidua
+FROM PROGETTO p
+LEFT JOIN FINANZIAMENTO f ON p.Nome = f.Nome_Progetto
+WHERE p.Stato = 'aperto'
 GROUP BY p.Nome, p.Descrizione, p.Budget
 ORDER BY DifferenzaResidua ASC
 LIMIT 3;
@@ -295,13 +358,20 @@ GROUP BY u.Nickname
 ORDER BY SUM(f.Importo) DESC
 LIMIT 3;
 
--- Inserimento dati nella tabella UTENTE
-INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita) VALUES
-('dalia.barone@email.com', 'dalia28', 'password123', 'Dalia', 'Barone', '2004-02-20', 'Termoli'),
-('mattia.veroni@email.com', 'mattiav', 'mypassword', 'Mattia', 'Veroni', '2002-12-31', 'Carpi'),
-('sofia.neamtu@email.com', 'sofia_n', 'sofia12345', 'Sofia', 'Neamtu', '2003-12-10', 'Padova');
 
--- Inserimento dati nella tabella SKILL (CORRETTO)
+-- Dati di esempio
+
+-- Inserimento dati nella tabella UTENTE
+INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita)
+VALUES
+('dalia.barone@email.com','dalia28','password123','Dalia','Barone',
+ '2004-02-20','Termoli'),
+('mattia.veroni@email.com','mattiav','mypassword','Mattia',
+ 'Veroni','2002-12-31','Carpi'),
+('sofia.neamtu@email.com','sofia_n','securepass',
+ 'Sofia','Neamtu','2003-12-10','Padova');
+
+-- Inserimento dati nella tabella SKILL
 INSERT INTO SKILL (Competenza, Livello) VALUES
 ('AI', 4),
 ('Machine Learning', 5),
@@ -309,113 +379,165 @@ INSERT INTO SKILL (Competenza, Livello) VALUES
 ('Database Management', 3),
 ('Cybersecurity', 4),
 ('Data Analysis', 3),
-('Cloud Computing', 5), -- Corretto a 5 per matchare SKILL_RICHIESTA
+('Cloud Computing', 5),
 ('Cloud Computing', 4),
 ('Networking', 3),
 ('Software Engineering', 4),
 ('Embedded Systems', 3);
 
--- Inserimento dati nella tabella SKILL_CURRICULUM (CORRETTO)
+-- Inserimento dati nella tabella SKILL_CURRICULUM
 INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello) VALUES
-('dalia.barone@email.com', 'Web Development', 4),
-('dalia.barone@email.com', 'Database Management', 3),
-('mattia.veroni@email.com', 'Cybersecurity', 4),
-('mattia.veroni@email.com', 'Networking', 3),
-('sofia.neamtu@email.com', 'Data Analysis', 3),
-('sofia.neamtu@email.com', 'AI', 4),
-('sofia.neamtu@email.com', 'Machine Learning', 5);
+('dalia.barone@email.com','Web Development',4),
+('dalia.barone@email.com','Database Management',3),
+('mattia.veroni@email.com','Cybersecurity',4),
+('mattia.veroni@email.com','Networking',3),
+('sofia.neamtu@email.com','Data Analysis',3),
+('sofia.neamtu@email.com','AI',4),
+('sofia.neamtu@email.com','Machine Learning',5);
 
 -- Inserimento dati nella tabella AMMINISTRATORE
--- Solo alcuni utenti saranno amministratori
 INSERT INTO AMMINISTRATORE (Email, Codice_Sicurezza) VALUES
-('dalia.barone@email.com', 'SEC123'),
-('mattia.veroni@email.com', 'SEC456');
+('dalia.barone@email.com','SEC123'),
+('mattia.veroni@email.com','SEC456');
 
 -- Inserimento dati nella tabella CREATORE
--- Solo alcuni utenti saranno creatori di progetti
 INSERT INTO CREATORE (Email, Affidabilita) VALUES
-('dalia.barone@email.com', 5),
-('mattia.veroni@email.com', 4),
-('sofia.neamtu@email.com', 3);
+('dalia.barone@email.com',5),
+('mattia.veroni@email.com',4),
+('sofia.neamtu@email.com',3);
 
 -- Inserimento dati nella tabella PROGETTO
-INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Stato, Budget, Data_Limite, Email_Creatore) VALUES
-('SmartHome AI', 'Sistema di automazione domestica basato su AI', '2025-03-01','aperto', 5000, '2025-06-01', 'dalia.barone@email.com'),
-('EduTech Platform', 'Piattaforma di e-learning avanzata', '2025-02-20','aperto', 8000, '2025-05-15', 'mattia.veroni@email.com'),
-('CyberShield', 'Firewall AI per la sicurezza informatica', '2025-01-15', 'chiuso', 12000, '2025-04-30', 'sofia.neamtu@email.com'),
-('AutoPilot System', 'Sistema di guida autonoma per auto', '2025-02-10', 'aperto', 15000, '2025-08-01', 'dalia.barone@email.com'),
-('E-Health Monitor', 'Sistema di monitoraggio remoto della salute', '2025-03-05','aperto', 7000, '2025-06-30', 'mattia.veroni@email.com');
+-- Ora con la colonna Foto
+INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Foto, Stato, Budget, Data_Limite, Email_Creatore)
+VALUES
+('SmartHome AI',
+ 'Sistema di automazione domestica basato su AI',
+ '2025-03-01',
+ 'smarthome.jpg',
+ 'aperto',
+ 5000,
+ '2025-06-01',
+ 'dalia.barone@email.com'),
 
--- Inserimento dati nella tabella HARDWARE (solo per progetti hardware)
-INSERT INTO HARDWARE (Nome) VALUES
-('SmartHome AI'),
-('AutoPilot System');
+('EduTech Platform',
+ 'Piattaforma di e-learning avanzata',
+ '2025-02-20',
+ 'edutech.jpg',
+ 'aperto',
+ 8000,
+ '2025-05-15',
+ 'mattia.veroni@email.com'),
 
--- Inserimento dati nella tabella SOFTWARE (solo per progetti software)
-INSERT INTO SOFTWARE (Nome) VALUES
-('EduTech Platform'),
-('CyberShield'),
-('E-Health Monitor');
+('CyberShield',
+ 'Firewall AI per la sicurezza informatica',
+ '2025-01-15',
+ 'cybershield.jpg',
+ 'chiuso',
+ 12000,
+ '2025-04-30',
+ 'sofia.neamtu@email.com'),
 
--- Inserimento dati nella tabella COMPONENTI
-INSERT INTO COMPONENTI (Nome, Descrizione, Prezzo, Quantità) VALUES
-('Sensore di Movimento', 'Sensore per rilevare il movimento in ambienti domestici', 20.00, 10),
-('Modulo Bluetooth', 'Modulo di comunicazione Bluetooth per connessione remota', 15.00, 8),
-('Camera HD', 'Telecamera ad alta risoluzione per sicurezza', 50.00, 5),
-('Motore Elettrico', 'Motore per guida autonoma', 120.00, 4),
-('Sensore LiDAR', 'Sensore per rilevamento ostacoli in guida autonoma', 200.00, 2),
-('Batteria al Litio', 'Batteria ricaricabile ad alta capacità', 90.00, 6),
-('Modulo WiFi', 'Modulo di connessione WiFi per dispositivi embedded', 18.00, 10),
-('Display Touchscreen', 'Schermo touchscreen per interfaccia utente', 75.00, 3);
+('AutoPilot System',
+ 'Sistema di guida autonoma per auto',
+ '2025-02-10',
+ 'autopilot.jpg',
+ 'aperto',
+ 15000,
+ '2025-08-01',
+ 'dalia.barone@email.com'),
 
--- Inserimento dati nella tabella COMPONENTI_HARDWARE
-INSERT INTO COMPONENTI_HARDWARE (Nome_Progetto, Nome_Componente) VALUES
-('SmartHome AI', 'Sensore di Movimento'),
-('SmartHome AI', 'Modulo Bluetooth'),
-('SmartHome AI', 'Camera HD'),
-('AutoPilot System', 'Motore Elettrico'),
-('AutoPilot System', 'Sensore LiDAR'),
-('AutoPilot System', 'Batteria al Litio');
+('E-Health Monitor',
+ 'Sistema di monitoraggio remoto della salute',
+ '2025-03-05',
+ 'ehealth.jpg',
+ 'aperto',
+ 7000,
+ '2025-06-30',
+ 'mattia.veroni@email.com');
 
--- Inserimento dati nella tabella PROFILO
-INSERT INTO PROFILO (ID, Nome) VALUES
-(1, 'Esperto AI'),
-(2, 'Sviluppatore Full Stack'),
-(3, 'Analista di Sicurezza'),
-(4, 'Ingegnere DevOps'),
-(5, 'Data Scientist'),
-(6, 'Cloud Architect');
+-- HARDWARE
+INSERT INTO HARDWARE (Nome)
+VALUES ('SmartHome AI'),
+       ('AutoPilot System');
 
--- Inserimento dati nella tabella PROFILO_SOFTWARE
-INSERT INTO PROFILO_SOFTWARE (Nome_Progetto, ID_Profilo) VALUES
-('EduTech Platform', 1),
-('EduTech Platform', 2),
-('CyberShield', 3),
-('CyberShield', 4),
-('E-Health Monitor', 5),
-('E-Health Monitor', 6);
+-- SOFTWARE
+INSERT INTO SOFTWARE (Nome)
+VALUES ('EduTech Platform'),
+       ('CyberShield'),
+       ('E-Health Monitor');
 
--- Inserimento dati nella tabella SKILL_RICHIESTA (CORRETTO)
-INSERT INTO SKILL_RICHIESTA (ID_Profilo, Competenza, Livello) VALUES
-(1, 'AI', 4), -- Esperto AI deve avere almeno AI livello 4
-(1, 'Machine Learning', 5), -- Esperto AI deve avere Machine Learning livello 5
-(2, 'Web Development', 4), -- Sviluppatore Full Stack deve sapere Web Dev livello 4
-(2, 'Database Management', 3), -- Sviluppatore Full Stack deve saper gestire DB livello 3
-(3, 'Cybersecurity', 4), -- Analista Sicurezza deve sapere Cybersecurity livello 4
-(4, 'Cloud Computing', 5), -- Ingegnere DevOps deve avere Cloud Computing livello 5
-(5, 'Data Analysis', 3), -- Data Scientist deve avere Data Analysis livello 3
-(5, 'AI', 4), -- Corretto il livello di AI per Data Scientist a 4 (prima era 3)
-(6, 'Cloud Computing', 4), -- Cloud Architect deve sapere Cloud Computing livello 4
-(6, 'Networking', 3); -- Cloud Architect deve sapere Networking livello 3
+-- COMPONENTI
+INSERT INTO COMPONENTI (Nome, Descrizione, Prezzo, Quantita)
+VALUES
+('Sensore di Movimento','Sensore per rilevare il movimento in ambienti domestici',20.00,10),
+('Modulo Bluetooth','Modulo di comunicazione Bluetooth per connessione remota',15.00,8),
+('Camera HD','Telecamera ad alta risoluzione per sicurezza',50.00,5),
+('Motore Elettrico','Motore per guida autonoma',120.00,4),
+('Sensore LiDAR','Sensore per rilevamento ostacoli in guida autonoma',200.00,2),
+('Batteria al Litio','Batteria ricaricabile ad alta capacita',90.00,6),
+('Modulo WiFi','Modulo di connessione WiFi per dispositivi embedded',18.00,10),
+('Display Touchscreen','Schermo touchscreen per interfaccia utente',75.00,3);
 
--- Tabelle commento e risposta in tempo reale
+-- COMPONENTI_HARDWARE
+INSERT INTO COMPONENTI_HARDWARE (Nome_Progetto, Nome_Componente)
+VALUES
+('SmartHome AI','Sensore di Movimento'),
+('SmartHome AI','Modulo Bluetooth'),
+('SmartHome AI','Camera HD'),
+('AutoPilot System','Motore Elettrico'),
+('AutoPilot System','Sensore LiDAR'),
+('AutoPilot System','Batteria al Litio');
 
--- Inserimento dati nella tabella REWARD
-INSERT INTO REWARD (Codice, Descrizione, Foto) VALUES
-('RWD1', 'Accesso beta esclusivo al prodotto', 'beta_access.jpg'),
-('RWD2', 'T-shirt personalizzata del progetto', 'tshirt.jpg'),
-('RWD3', 'Menzione speciale nel sito ufficiale', 'mention.jpg'),
-('RWD4', 'Invito a evento esclusivo di presentazione', 'event_invite.jpg'),
-('RWD5', 'Pacchetto premium di funzioni avanzate', 'premium_pack.jpg');
+-- PROFILO
+INSERT INTO PROFILO (ID, Nome)
+VALUES
+(1,'Esperto AI'),
+(2,'Sviluppatore Full Stack'),
+(3,'Analista di Sicurezza'),
+(4,'Ingegnere DevOps'),
+(5,'Data Scientist'),
+(6,'Cloud Architect');
 
--- Tabella finanziamento e candidatura in tempo reale
+-- PROFILO_SOFTWARE
+INSERT INTO PROFILO_SOFTWARE (Nome_Progetto, ID_Profilo)
+VALUES
+('EduTech Platform',1),
+('EduTech Platform',2),
+('CyberShield',3),
+('CyberShield',4),
+('E-Health Monitor',5),
+('E-Health Monitor',6);
+
+-- SKILL_RICHIESTA
+INSERT INTO SKILL_RICHIESTA (ID_Profilo, Competenza, Livello)
+VALUES
+(1,'AI',4),
+(1,'Machine Learning',5),
+(2,'Web Development',4),
+(2,'Database Management',3),
+(3,'Cybersecurity',4),
+(4,'Cloud Computing',5),
+(5,'Data Analysis',3),
+(5,'AI',4),
+(6,'Cloud Computing',4),
+(6,'Networking',3);
+
+-- REWARD
+INSERT INTO REWARD (Codice, Descrizione, Foto)
+VALUES
+('RWD1','Accesso beta esclusivo al prodotto','beta_access.jpg'),
+('RWD2','T-shirt personalizzata del progetto','tshirt.jpg'),
+('RWD3','Menzione speciale nel sito ufficiale','mention.jpg'),
+('RWD4','Invito a evento esclusivo di presentazione','event_invite.jpg'),
+('RWD5','Pacchetto premium di funzioni avanzate','premium_pack.jpg');
+
+-- ESEMPIO di popolamento di PROGETTO_REWARD (opzionale)
+-- se si vuole associare reward a progetti
+/*
+INSERT INTO PROGETTO_REWARD (Nome_Progetto, Codice_Reward)
+VALUES
+('SmartHome AI','RWD1'),
+('AutoPilot System','RWD4');
+*/
+
+
