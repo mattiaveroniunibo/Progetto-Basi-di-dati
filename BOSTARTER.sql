@@ -250,6 +250,8 @@ BEGIN
 END $$
 
 -- Stored Procedure per il finanziamento di un progetto
+DELIMITER $$
+
 CREATE PROCEDURE FinanziaProgetto(
     IN p_Email VARCHAR(100),
     IN p_NomeProgetto VARCHAR(100),
@@ -257,21 +259,49 @@ CREATE PROCEDURE FinanziaProgetto(
     IN p_CodiceReward VARCHAR(100)
 )
 BEGIN
-    INSERT INTO FINANZIAMENTO (Importo, Email_Utente, Codice_Reward, Nome_Progetto)
-    VALUES (p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
+    INSERT INTO FINANZIAMENTO (Data, Importo, Email_Utente, Codice_Reward, Nome_Progetto)
+    VALUES (NOW(), p_Importo, p_Email, p_CodiceReward, p_NomeProgetto);
 END $$
 
+DELIMITER ;
+
 -- Stored Procedure per l'inserimento di una candidatura
+DELIMITER $$
+
 CREATE PROCEDURE InserisciCandidatura(
     IN p_Email VARCHAR(100),
     IN p_IDProfilo INT
 )
 BEGIN
-    INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
-    VALUES (FALSE, p_Email, p_IDProfilo);
+    DECLARE v_Count INT;
+
+    -- Verifica se l'utente possiede tutte le skill richieste
+    SELECT COUNT(*) INTO v_Count
+    FROM (
+        SELECT sr.Competenza, sr.Livello
+        FROM SKILL_RICHIESTA sr
+        LEFT JOIN SKILL_CURRICULUM sc 
+            ON sc.Email_Utente = p_Email AND sc.Competenza = sr.Competenza AND sc.Livello >= sr.Livello
+        WHERE sr.ID_Profilo = p_IDProfilo AND sc.Email_Utente IS NULL
+    ) AS Mancanti;
+
+    -- Se ci sono skill mancanti, errore
+    IF v_Count > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'L utente non possiede tutte le skill richieste per questo profilo';
+    ELSE
+        -- Se tutto ok, inserisce la candidatura
+        INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
+        VALUES (FALSE, p_Email, p_IDProfilo);
+    END IF;
 END $$
 
+DELIMITER ;
+
+
 -- Stored Procedure per accettare una candidatura
+DELIMITER $$
+
 CREATE PROCEDURE AccettaCandidatura(
     IN p_IDCandidatura INT,
     IN p_Esito BOOLEAN
@@ -282,7 +312,12 @@ BEGIN
     WHERE ID = p_IDCandidatura;
 END $$
 
+DELIMITER ;
+
+
 -- Stored Procedure per inserire una nuova skill
+DELIMITER $$
+
 CREATE PROCEDURE InserisciSkill(
     IN p_Competenza VARCHAR(100),
     IN p_Livello INT
@@ -292,40 +327,176 @@ BEGIN
     VALUES (p_Competenza, p_Livello);
 END $$
 
+DELIMITER;
+
+-- PROCEDURE: Login per Amministratore
+DELIMITER $$
+
+CREATE PROCEDURE LoginAmministratore(
+    IN p_Email VARCHAR(100),
+    IN p_Password VARCHAR(255),
+    IN p_CodiceSicurezza VARCHAR(50)
+)
+BEGIN
+    DECLARE v_Count INT;
+
+    SELECT COUNT(*) INTO v_Count
+    FROM UTENTE U
+    JOIN AMMINISTRATORE A ON U.Email = A.Email
+    WHERE U.Email = p_Email AND U.Password = p_Password AND A.Codice_Sicurezza = p_CodiceSicurezza;
+
+    IF v_Count = 1 THEN
+        SELECT 'Login amministratore riuscito' AS Messaggio;
+    ELSE
+        SELECT 'Credenziali amministratore non valide' AS Messaggio;
+    END IF;
+END $$
+
+-- PROCEDURE: Inserimento Progetto
+CREATE PROCEDURE InserisciProgetto(
+    IN p_Nome VARCHAR(100),
+    IN p_Descrizione TEXT,
+    IN p_DataInserimento DATE,
+    IN p_Budget DECIMAL(10,2),
+    IN p_DataLimite DATE,
+    IN p_Stato ENUM('aperto', 'chiuso'),
+    IN p_EmailCreatore VARCHAR(100)
+)
+BEGIN
+    INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Stato, Budget, Data_Limite, Email_Creatore)
+    VALUES (p_Nome, p_Descrizione, p_DataInserimento, p_Stato, p_Budget, p_DataLimite, p_EmailCreatore);
+END $$
+
+-- PROCEDURE: Inserimento Reward
+CREATE PROCEDURE InserisciReward(
+    IN p_Codice VARCHAR(100),
+    IN p_Descrizione TEXT,
+    IN p_Foto TEXT,
+    IN p_NomeProgetto VARCHAR(100)
+)
+BEGIN
+    INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto)
+    VALUES (p_Codice, p_Descrizione, p_Foto, p_NomeProgetto);
+END $$
+
+-- PROCEDURE: Inserimento Profilo Richiesto
+CREATE PROCEDURE InserisciProfiloRichiesto(
+    IN p_ID INT,
+    IN p_NomeProfilo VARCHAR(100),
+    IN p_NomeProgetto VARCHAR(100)
+)
+BEGIN
+    INSERT INTO PROFILO_RICHIESTO (ID, Nome, Nome_Progetto)
+    VALUES (p_ID, p_NomeProfilo, p_NomeProgetto);
+END $$
+
+-- PROCEDURE: Risposta a un commento
+CREATE PROCEDURE InserisciRisposta(
+    IN p_IDCommento INT,
+    IN p_Testo TEXT
+)
+BEGIN
+    UPDATE COMMENTO
+    SET Risposta = p_Testo
+    WHERE ID = p_IDCommento;
+END $$
+
+-- PROCEDURE: Inserimento Skill Curriculum
+CREATE PROCEDURE InserisciSkillCurriculum(
+    IN p_Email VARCHAR(100),
+    IN p_Competenza VARCHAR(100),
+    IN p_Livello INT
+)
+BEGIN
+    INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello)
+    VALUES (p_Email, p_Competenza, p_Livello);
+END $$
+
+-- TRIGGER: Incrementa Nr_Progetti al nuovo inserimento
+CREATE TRIGGER IncrementaNrProgetti
+AFTER INSERT ON PROGETTO
+FOR EACH ROW
+BEGIN
+    UPDATE CREATORE
+    SET Nr_Progetti = Nr_Progetti + 1
+    WHERE Email = NEW.Email_Creatore;
+END $$
+
+-- TRIGGER (opzionale): Validazione livello skill (esempio)
+-- Per evitare livelli non validi, ma hai già CHECK nel campo
+
+DELIMITER ;
+
 -- Trigger per aggiornare l'affidabilita del creatore
+DELIMITER $$
+
 CREATE TRIGGER AggiornaAffidabilita
 AFTER INSERT ON FINANZIAMENTO
 FOR EACH ROW
 BEGIN
-    UPDATE CREATORE C
-    SET Affidabilita = (
-        SELECT COUNT(DISTINCT P.Nome) / COUNT(*)
-        FROM PROGETTO P
-        WHERE P.Email_Creatore = C.Email
-    )
-    WHERE C.Email = (
-        SELECT Email_Creatore
-        FROM PROGETTO
-        WHERE Nome = NEW.Nome_Progetto
-    );
+    DECLARE v_CreatoreEmail VARCHAR(100);
+    DECLARE v_ProgettiFinanziati INT DEFAULT 0;
+    DECLARE v_TotaleProgetti INT DEFAULT 0;
+
+    -- Trova l'email del creatore del progetto finanziato
+    SELECT Email_Creatore INTO v_CreatoreEmail
+    FROM PROGETTO
+    WHERE Nome = NEW.Nome_Progetto;
+
+    -- Conta i progetti finanziati almeno una volta
+    SELECT COUNT(DISTINCT f.Nome_Progetto) INTO v_ProgettiFinanziati
+    FROM FINANZIAMENTO f
+    JOIN PROGETTO p ON p.Nome = f.Nome_Progetto
+    WHERE p.Email_Creatore = v_CreatoreEmail;
+
+    -- Conta tutti i progetti del creatore
+    SELECT COUNT(*) INTO v_TotaleProgetti
+    FROM PROGETTO
+    WHERE Email_Creatore = v_CreatoreEmail;
+
+    -- Aggiorna affidabilità
+    IF v_TotaleProgetti > 0 THEN
+        UPDATE CREATORE
+        SET Affidabilita = v_ProgettiFinanziati / v_TotaleProgetti
+        WHERE Email = v_CreatoreEmail;
+    END IF;
 END $$
 
+DELIMITER ;
+
 -- Trigger per cambiare lo stato di un progetto quando il budget è raggiunto
+DELIMITER $$
+
 CREATE TRIGGER ChiudiProgettoBudget
 AFTER INSERT ON FINANZIAMENTO
 FOR EACH ROW
 BEGIN
-    UPDATE PROGETTO
-    SET Stato = 'chiuso'
-    WHERE Nome = NEW.Nome_Progetto
-      AND (
-         SELECT SUM(Importo)
-         FROM FINANZIAMENTO
-         WHERE Nome_Progetto = NEW.Nome_Progetto
-      ) >= Budget;
+    DECLARE v_TotaleFinanziamenti DECIMAL(10,2);
+    DECLARE v_Budget DECIMAL(10,2);
+
+    -- Calcola la somma dei finanziamenti per il progetto
+    SELECT SUM(Importo) INTO v_TotaleFinanziamenti
+    FROM FINANZIAMENTO
+    WHERE Nome_Progetto = NEW.Nome_Progetto;
+
+    -- Ottieni il budget del progetto
+    SELECT Budget INTO v_Budget
+    FROM PROGETTO
+    WHERE Nome = NEW.Nome_Progetto;
+
+    -- Se raggiunto o superato il budget, chiudi il progetto
+    IF v_TotaleFinanziamenti >= v_Budget THEN
+        UPDATE PROGETTO
+        SET Stato = 'chiuso'
+        WHERE Nome = NEW.Nome_Progetto;
+    END IF;
 END $$
 
+DELIMITER ;
+
 -- Evento per chiudere i progetti scaduti
+DELIMITER $$
+
 CREATE EVENT ChiudiProgettiScaduti
 ON SCHEDULE EVERY 1 DAY
 DO
@@ -402,7 +573,7 @@ INSERT INTO SKILL_CURRICULUM (Email_Utente, Competenza, Livello) VALUES
 -- Inserimento dati nella tabella AMMINISTRATORE
 INSERT INTO AMMINISTRATORE (Email, Codice_Sicurezza) VALUES
 ('dalia.barone@email.com','SEC123'),
-('mattia.veroni@email.com','SEC456');
+('sofia.neamtu@email.com','SEC456');
 
 -- Inserimento dati nella tabella CREATORE
 INSERT INTO CREATORE (Email, Affidabilita) VALUES
@@ -590,5 +761,3 @@ VALUES
 (FALSE, 'dalia.barone@email.com', 1),
 (FALSE, 'mattia.veroni@email.com', 2),
 (FALSE, 'sofia.neamtu@email.com', 3);
-
-
