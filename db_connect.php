@@ -9,6 +9,4 @@ $conn = new mysqli($host, $user, $password, $dbname);
 if ($conn->connect_error) {
     die("Errore di connessione: " . $conn->connect_error);
 }
-
-header("Content-Type: application/json; charset=UTF-8");
 ?>

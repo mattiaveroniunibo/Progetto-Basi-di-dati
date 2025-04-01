@@ -368,18 +368,27 @@ BEGIN
 END $$
 
 -- PROCEDURE: Inserimento Reward
+DELIMITER $$
+
 CREATE PROCEDURE InserisciReward(
     IN p_Codice VARCHAR(100),
     IN p_Descrizione TEXT,
-    IN p_Foto TEXT,
+    IN p_idFoto INT,
     IN p_NomeProgetto VARCHAR(100)
 )
 BEGIN
-    INSERT INTO REWARD (Codice, Descrizione, Foto, Nome_Progetto)
-    VALUES (p_Codice, p_Descrizione, p_Foto, p_NomeProgetto);
+    INSERT INTO REWARD (Codice, Descrizione, idFoto)
+    VALUES (p_Codice, p_Descrizione, p_idFoto);
+
+    INSERT INTO PROGETTO_REWARD (Nome_Progetto, Codice_Reward)
+    VALUES (p_NomeProgetto, p_Codice);
 END $$
 
+DELIMITER ;
+
 -- PROCEDURE: Inserimento Profilo Richiesto
+DELIMITER $$
+
 CREATE PROCEDURE InserisciProfiloRichiesto(
     IN p_ID INT,
     IN p_NomeProfilo VARCHAR(100),
@@ -390,18 +399,26 @@ BEGIN
     VALUES (p_ID, p_NomeProfilo, p_NomeProgetto);
 END $$
 
+DELIMITER;
+
 -- PROCEDURE: Risposta a un commento
+DELIMITER $$
+
 CREATE PROCEDURE InserisciRisposta(
     IN p_IDCommento INT,
+    IN p_EmailCreatore VARCHAR(100),
     IN p_Testo TEXT
 )
 BEGIN
-    UPDATE COMMENTO
-    SET Risposta = p_Testo
-    WHERE ID = p_IDCommento;
+    INSERT INTO RISPOSTA (ID_Commento, Email_Creatore, Testo)
+    VALUES (p_IDCommento, p_EmailCreatore, p_Testo);
 END $$
 
+DELIMITER ;
+
+
 -- PROCEDURE: Inserimento Skill Curriculum
+DELIMITER $$
 CREATE PROCEDURE InserisciSkillCurriculum(
     IN p_Email VARCHAR(100),
     IN p_Competenza VARCHAR(100),
@@ -412,7 +429,10 @@ BEGIN
     VALUES (p_Email, p_Competenza, p_Livello);
 END $$
 
+DELIMITER;
+
 -- TRIGGER: Incrementa Nr_Progetti al nuovo inserimento
+DELIMITER $$
 CREATE TRIGGER IncrementaNrProgetti
 AFTER INSERT ON PROGETTO
 FOR EACH ROW
@@ -435,34 +455,71 @@ AFTER INSERT ON FINANZIAMENTO
 FOR EACH ROW
 BEGIN
     DECLARE v_CreatoreEmail VARCHAR(100);
-    DECLARE v_ProgettiFinanziati INT DEFAULT 0;
-    DECLARE v_TotaleProgetti INT DEFAULT 0;
+    DECLARE v_Finanziati INT DEFAULT 0;
+    DECLARE v_Totale INT DEFAULT 0;
+    DECLARE v_NuovaAffidabilita DECIMAL(5,2);
 
-    -- Trova l'email del creatore del progetto finanziato
+    -- Email del creatore del progetto finanziato
     SELECT Email_Creatore INTO v_CreatoreEmail
     FROM PROGETTO
     WHERE Nome = NEW.Nome_Progetto;
 
-    -- Conta i progetti finanziati almeno una volta
-    SELECT COUNT(DISTINCT f.Nome_Progetto) INTO v_ProgettiFinanziati
-    FROM FINANZIAMENTO f
-    JOIN PROGETTO p ON p.Nome = f.Nome_Progetto
+    -- Numero progetti finanziati almeno una volta
+    SELECT COUNT(DISTINCT p.Nome)
+    INTO v_Finanziati
+    FROM PROGETTO p
+    JOIN FINANZIAMENTO f ON f.Nome_Progetto = p.Nome
     WHERE p.Email_Creatore = v_CreatoreEmail;
 
-    -- Conta tutti i progetti del creatore
-    SELECT COUNT(*) INTO v_TotaleProgetti
+    -- Totale progetti del creatore
+    SELECT COUNT(*) INTO v_Totale
     FROM PROGETTO
     WHERE Email_Creatore = v_CreatoreEmail;
 
-    -- Aggiorna affidabilità
-    IF v_TotaleProgetti > 0 THEN
+    -- Calcolo e aggiornamento affidabilità
+    IF v_Totale > 0 THEN
+        SET v_NuovaAffidabilita = CAST(v_Finanziati AS DECIMAL(5,2)) / CAST(v_Totale AS DECIMAL(5,2));
         UPDATE CREATORE
-        SET Affidabilita = v_ProgettiFinanziati / v_TotaleProgetti
+        SET Affidabilita = v_NuovaAffidabilita
         WHERE Email = v_CreatoreEmail;
     END IF;
 END $$
 
 DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER RicalcolaAffidabilitaDopoNuovoProgetto
+AFTER INSERT ON PROGETTO
+FOR EACH ROW
+BEGIN
+    DECLARE v_Finanziati INT DEFAULT 0;
+    DECLARE v_Totale INT DEFAULT 0;
+    DECLARE v_NuovaAffidabilita DECIMAL(5,2);
+
+    -- Conta progetti finanziati almeno una volta
+    SELECT COUNT(DISTINCT p.Nome)
+    INTO v_Finanziati
+    FROM PROGETTO p
+    JOIN FINANZIAMENTO f ON f.Nome_Progetto = p.Nome
+    WHERE p.Email_Creatore = NEW.Email_Creatore;
+
+    -- Conta tutti i progetti del creatore
+    SELECT COUNT(*) INTO v_Totale
+    FROM PROGETTO
+    WHERE Email_Creatore = NEW.Email_Creatore;
+
+    -- Calcola e aggiorna affidabilità
+    IF v_Totale > 0 THEN
+        SET v_NuovaAffidabilita = CAST(v_Finanziati AS DECIMAL(5,2)) / CAST(v_Totale AS DECIMAL(5,2));
+        UPDATE CREATORE
+        SET Affidabilita = v_NuovaAffidabilita
+        WHERE Email = NEW.Email_Creatore;
+    END IF;
+END $$
+
+DELIMITER ;
+
 
 -- Trigger per cambiare lo stato di un progetto quando il budget è raggiunto
 DELIMITER $$
@@ -530,12 +587,29 @@ LIMIT 3;
 
 -- View per la classifica degli utenti in base ai finanziamenti totali erogati (Top 3)
 CREATE VIEW ClassificaFinanziatori AS
-SELECT u.Nickname
+SELECT u.Nickname, SUM(f.Importo) AS Totale
 FROM UTENTE u
 JOIN FINANZIAMENTO f ON u.Email = f.Email_Utente
 GROUP BY u.Nickname
-ORDER BY SUM(f.Importo) DESC
+ORDER BY Totale DESC
 LIMIT 3;
+
+-- View per debug
+CREATE OR REPLACE VIEW DebugProgetti AS
+SELECT 
+    p.Nome AS Progetto,
+    p.Stato,
+    p.Budget,
+    COALESCE(SUM(f.Importo), 0) AS TotaleFinanziato,
+    DATEDIFF(p.Data_Limite, CURDATE()) AS GiorniResidui,
+    c.Nr_Progetti,
+    c.Affidabilita,
+    u.Nickname AS Creatore
+FROM PROGETTO p
+LEFT JOIN FINANZIAMENTO f ON p.Nome = f.Nome_Progetto
+JOIN CREATORE c ON p.Email_Creatore = c.Email
+JOIN UTENTE u ON u.Email = c.Email
+GROUP BY p.Nome;
 
 -- Dati di esempio
 
@@ -577,9 +651,9 @@ INSERT INTO AMMINISTRATORE (Email, Codice_Sicurezza) VALUES
 
 -- Inserimento dati nella tabella CREATORE
 INSERT INTO CREATORE (Email, Affidabilita) VALUES
-('dalia.barone@email.com',5),
-('mattia.veroni@email.com',4),
-('sofia.neamtu@email.com',3);
+('dalia.barone@email.com',0),
+('mattia.veroni@email.com',0),
+('sofia.neamtu@email.com',0);
 
 
 -- Inserimento dati per la gestione delle immagini
