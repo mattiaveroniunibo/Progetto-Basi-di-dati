@@ -1,22 +1,100 @@
-// Funzione per caricare le pagine dinamicamente
+// script.js COMPLETO E FUNZIONANTE
+
+// Caricamento dinamico delle pagine
 function loadPage(page) {
-    if (page === "progetti") {
-        loadProjects();
-    } else if (page === "statistiche") {
-        loadStatistics();
-    } else if (page === "login") {
+    console.log("Loading page:", page);
+
+    const isLoggedIn = !!sessionStorage.getItem("userEmail");
+
+    if (page === "profilo" && !isLoggedIn) {
+        document.getElementById("content").innerHTML = `
+            <div class='alert'>
+                <h3>⚠️ Accesso negato</h3>
+                <p>Effettua il login per accedere al profilo.</p>
+            </div>
+        `;
+        return;
+    }    
+
+    if (page === "login") {
         loadLoginPage();
+    } else if (page === "profilo") {
+        const isAdmin = sessionStorage.getItem("isAdmin") === "1";
+        console.log("🧠 isAdmin:", isAdmin);
+    
+        let html = `
+            <div class='profilo'>
+                <h2>Il Mio Profilo</h2>
+                <p>Informazioni personali e progetti supportati.</p>
+        `;
+    
+        if (isAdmin) {
+            html += `
+                <hr class="my-4">
+                <div class="card border-dark">
+                    <div class="card-header bg-dark text-white">
+                        Pannello Amministratore
+                    </div>
+                    <div class="card-body">
+                        <form id="skillForm">
+                            <div class="mb-3">
+                                <label for="skillName" class="form-label">Nome competenza</label>
+                                <input type="text" class="form-control" id="skillName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="skillLevel" class="form-label">Livello (0-5)</label>
+                                <input type="number" class="form-control" id="skillLevel" min="0" max="5" required>
+                            </div>
+                            <button type="submit" class="btn btn-success">Aggiungi Skill</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+        }
+    
+        html += `</div>`;
+        document.getElementById("content").innerHTML = html;
+    
+        // Collega il form se l'admin esiste davvero
+        if (isAdmin) {
+            const skillForm = document.getElementById("skillForm");
+            if (skillForm) {
+                skillForm.addEventListener("submit", async function (e) {
+                    e.preventDefault();
+    
+                    const name = document.getElementById("skillName").value;
+                    const level = document.getElementById("skillLevel").value;
+    
+                    const formData = new FormData();
+                    formData.append("competenza", name);
+                    formData.append("livello", level);
+    
+                    const response = await fetch("aggiungi_skill.php", {
+                        method: "POST",
+                        body: formData
+                    });
+    
+                    const data = await response.json();
+                    alert(data.message);
+                });
+            }
+        }
+    } else if (page === "progetti") {
+        loadProjects(); // 💥 chiamata alla tua funzione esistente
+    } else if (page === "statistiche") {
+        loadStatistics(); // 💥 chiamata alla tua funzione esistente
     } else {
-        const pages = {
-            'home': `<div class='home'><h2>Benvenuto su BOSTARTER!</h2><p>Scopri, finanzia e crea progetti innovativi.</p><a href='#' class='cta-button' onclick="loadPage('progetti')">Scopri i Progetti</a></div>`,
-            'profilo': `<div class='profilo'><h2>Il Mio Profilo</h2><p>Informazioni personali e progetti supportati.</p></div>`
-        };
-        document.getElementById("content").innerHTML = pages[page] || "<h2>Errore: Pagina non trovata!</h2>";
+        document.getElementById("content").innerHTML = `
+            <h2>Benvenuto</h2>
+            <p>Questa è la home.</p>
+        `;
     }
 }
 
-// Funzione per caricare il form di login e registrazione
+// Caricamento login + registrazione
 function loadLoginPage() {
+    console.log("Login page caricata");
     let html = `
         <div class="login">
             <h2>Accedi</h2>
@@ -25,6 +103,13 @@ function loadLoginPage() {
                 <input type="email" id="loginEmail" required>
                 <label>Password:</label>
                 <input type="password" id="loginPassword" required>
+                <div>
+                    <label><input type="checkbox" id="isAdminCheckbox"> Sono un amministratore</label>
+                </div>
+                <div id="adminCodeContainer" style="display: none;">
+                    <label>Codice sicurezza:</label>
+                    <input type="text" id="adminCode">
+                </div>
                 <button type="submit">Accedi</button>
             </form>
 
@@ -45,12 +130,14 @@ function loadLoginPage() {
     `;
     document.getElementById("content").innerHTML = html;
 
+    document.getElementById("isAdminCheckbox").addEventListener("change", (e) => {
+        document.getElementById("adminCodeContainer").style.display = e.target.checked ? "block" : "none";
+    });
     document.getElementById("registerForm").addEventListener("submit", registerUser);
     document.getElementById("loginForm").addEventListener("submit", loginUser);
 }
 
-// Funzione per registrare un nuovo utente
-// Funzione per registrare un nuovo utente e reindirizzarlo alla home/profilo
+// Registrazione utente
 async function registerUser(event) {
     event.preventDefault();
     let formData = new FormData();
@@ -67,20 +154,19 @@ async function registerUser(event) {
 
     alert(data.message);
     if (data.success) {
-        sessionStorage.setItem("userEmail", document.getElementById("regEmail").value); // Salva la sessione lato client
-        checkLoginStatus(); // Aggiorna la navbar
-        loadPage("profilo"); // Reindirizza al profilo
+        sessionStorage.setItem("userEmail", document.getElementById("regEmail").value);
+        checkLoginStatus();
+        loadPage("profilo");
     }
 }
 
 
-// Controlla se l'utente è loggato
+// Stato login
 function checkLoginStatus() {
-    let userEmail = sessionStorage.getItem("userEmail");
-    let navLinks = document.querySelector(".nav-links");
+    const navLinks = document.querySelector(".nav-links");
+    const isLoggedIn = !!sessionStorage.getItem("userEmail");
 
-    if (userEmail) {
-        // Se l'utente è loggato, mostra "Logout"
+    if (isLoggedIn) {
         navLinks.innerHTML = `
             <li><a href="#" onclick="loadPage('home')">Home</a></li>
             <li><a href="#" onclick="loadPage('progetti')">Progetti</a></li>
@@ -89,7 +175,6 @@ function checkLoginStatus() {
             <li><a href="#" onclick="logout()">Logout</a></li>
         `;
     } else {
-        // Se non è loggato, mostra "Accedi"
         navLinks.innerHTML = `
             <li><a href="#" onclick="loadPage('home')">Home</a></li>
             <li><a href="#" onclick="loadPage('progetti')">Progetti</a></li>
@@ -99,41 +184,53 @@ function checkLoginStatus() {
     }
 }
 
-// Modifica della funzione di login per salvare la sessione
+// Login utente/admin
 async function loginUser(event) {
     event.preventDefault();
-    let formData = new FormData();
+
+    const formData = new FormData();
     formData.append("email", document.getElementById("loginEmail").value);
     formData.append("password", document.getElementById("loginPassword").value);
 
-    let response = await fetch("login.php", { method: "POST", body: formData });
-    let data = await response.json();
+    const isAdminCheckbox = document.getElementById("isAdminCheckbox").checked;
+    if (isAdminCheckbox) {
+        formData.append("is_admin", "1");
+        formData.append("security_code", document.getElementById("adminCode").value);
+    }
 
+    const response = await fetch("login.php", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
     alert(data.message);
+
     if (data.success) {
-        sessionStorage.setItem("userEmail", data.email); // Salva la sessione lato client
-        checkLoginStatus(); // Aggiorna la navbar
-        loadPage("profilo"); // Reindirizza al profilo
+        sessionStorage.setItem("userEmail", data.email);
+
+        if (data.admin === "1") {
+            sessionStorage.setItem("isAdmin", "1");
+        } else {
+            sessionStorage.removeItem("isAdmin");
+        }
+
+        checkLoginStatus(); // 🔄 aggiorna navbar
+        loadPage("profilo"); // ✅ porta sempre a profilo
     }
 }
 
-// Funzione di logout
+// Logout
 async function logout() {
     let response = await fetch("logout.php");
     let data = await response.json();
-    
+
     if (data.success) {
-        sessionStorage.removeItem("userEmail"); // Cancella la sessione lato client
-        checkLoginStatus(); // Aggiorna la navbar
-        loadPage("home"); // Torna alla home
+        sessionStorage.removeItem("userEmail");
+        checkLoginStatus();
+        loadPage("home");
     }
 }
-
-// Carica la pagina e controlla se l'utente è loggato
-window.onload = () => {
-    checkLoginStatus();
-    loadPage("home");
-};
 
 
 // Funzione per caricare i progetti dal database
@@ -175,37 +272,43 @@ async function loadStatistics() {
             throw new Error("Errore nel caricamento delle statistiche");
         }
         let stats = await response.json();
+        console.log(stats); // per debug
 
         let container = document.getElementById("content");
-        let html = `<div class='statistiche'><h2>Statistiche</h2>`;
+        let html = `<div class='statistiche'><h2>Statistiche</h2><div class="statistiche-grid">`;
 
-        // Top Creatori
-        html += `<h3>Top 3 Creatori più Affidabili</h3><ol>`;
+        // Classifica Creatori
+        html += `<div class="stat-box"><h3>Top 3 Creatori più Affidabili</h3><ol>`;
         stats.top_creatori.forEach(creator => {
-            html += `<li>${creator.Nickname} - Affidabilità: ${creator.Affidabilita}%</li>`;
+            html += `<li>${creator.Nickname}</li>`;
         });
-        html += `</ol>`;
+        html += `</ol></div>`;
 
-        // Top Progetti
-        html += `<h3>Progetti più vicini al completamento</h3><ul>`;
+        // Progetti Quasi Completati
+        html += `<div class="stat-box"><h3>Progetti più vicini al completamento</h3><ol>`;
         stats.top_progetti.forEach(project => {
-            let percentComplete = ((project.FinanziamentiRicevuti / project.Budget) * 100).toFixed(1);
-            html += `<li>${project.Nome} - ${percentComplete}% finanziato</li>`;
+            html += `<li>${project.Nome}</li>`;
         });
-        html += `</ul>`;
+        html += `</ol></div>`;
 
-        // Top Finanziatori
-        html += `<h3>Top 3 Utenti con più Finanziamenti</h3><ul>`;
+        // Classifica Finanziatori
+        html += `<div class="stat-box"><h3>Top 3 Utenti con più Finanziamenti</h3><ol>`;
         stats.top_finanziatori.forEach(user => {
-            html += `<li>${user.Nickname} - Totale finanziato: €${user.TotaleFinanziato}</li>`;
+            html += `<li>${user.Nickname}</li>`;
         });
-        html += `</ul></div>`;
+        html += `</ol></div>`;
 
+        html += `</div></div>`; // chiusura griglia e contenitore
         container.innerHTML = html;
+
     } catch (error) {
+        console.error("Errore statistiche:", error);
         document.getElementById("content").innerHTML = "<h2>Errore nel caricamento delle statistiche.</h2>";
     }
 }
 
-// Carica la home all'avvio
-window.onload = () => loadPage("home");
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("📦 DOM completamente caricato");
+    checkLoginStatus();
+    loadPage("home");
+});

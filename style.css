@@ -159,27 +159,51 @@ form button:hover {
 }
 
 .statistiche {
+    padding: 2rem;
     text-align: center;
-    padding: 20px;
 }
 
-.statistiche h3 {
-    margin-top: 20px;
-    color: #ff6600;
+.statistiche h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    font-weight: bold;
 }
 
-.statistiche ul, .statistiche ol {
-    list-style: none;
+.statistiche-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+}
+
+.stat-box {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+}
+
+.stat-box h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.stat-box ol,
+.stat-box ul {
+    list-style-position: inside;
     padding: 0;
     margin: 0;
+    text-align: left;
 }
 
-.statistiche li {
-    padding: 10px;
-    background: white;
-    border-radius: 5px;
-    margin: 5px auto;
-    max-width: 400px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+.stat-box li {
+    font-size: 1rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dashed #eee;
 }
-
