@@ -9,7 +9,7 @@ function loadPage(page) {
     if (page === "profilo" && !isLoggedIn) {
         document.getElementById("content").innerHTML = `
             <div class='alert'>
-                <h3>⚠️ Accesso negato</h3>
+                <h3>Accesso negato</h3>
                 <p>Effettua il login per accedere al profilo.</p>
             </div>
         `;
@@ -20,7 +20,7 @@ function loadPage(page) {
         loadLoginPage();
     } else if (page === "profilo") {
         const isAdmin = sessionStorage.getItem("isAdmin") === "1";
-        console.log("🧠 isAdmin:", isAdmin);
+        console.log("isAdmin:", isAdmin);
     
         let html = `
             <div class='profilo'>
@@ -65,10 +65,12 @@ function loadPage(page) {
     
                     const name = document.getElementById("skillName").value;
                     const level = document.getElementById("skillLevel").value;
-    
+                    const email = sessionStorage.getItem("userEmail");
+                    
                     const formData = new FormData();
                     formData.append("competenza", name);
                     formData.append("livello", level);
+                    formData.append("email", email);
     
                     const response = await fetch("aggiungi_skill.php", {
                         method: "POST",

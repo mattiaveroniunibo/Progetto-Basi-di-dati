@@ -1,18 +1,30 @@
 <?php
-include 'db_connect.php';
+include("db_connect.php");
+require_once("mongo_logger.php");
 
-$competenza = $_POST['competenza'];
-$livello = $_POST['livello'];
+$competenza = $_POST["competenza"] ?? null;
+$livello = $_POST["livello"] ?? null;
+$email = $_POST["email"] ?? null; 
 
-$stmt = $conn->prepare("CALL InserisciSkill(?, ?)");
-$stmt->bind_param("si", $competenza, $livello);
+$response = ["success" => false, "message" => ""];
 
-if ($stmt->execute()) {
-    echo json_encode(["success" => true, "message" => "Skill aggiunta con successo!"]);
+if ($competenza && is_numeric($livello)) {
+    $stmt = $conn->prepare("CALL InserisciSkill(?, ?)");
+    $stmt->bind_param("si", $competenza, $livello);
+
+    if ($stmt->execute()) {
+        $response["success"] = true;
+        $response["message"] = "Skill inserita con successo!";
+        
+        logEvento("Nuova skill inserita: {$competenza} (livello {$livello})", $email);
+    } else {
+        $response["message"] = "Errore nell'inserimento della skill.";
+    }
+
+    $stmt->close();
 } else {
-    echo json_encode(["success" => false, "message" => "Errore nell'aggiunta della skill."]);
+    $response["message"] = "Dati incompleti o non validi.";
 }
 
-$stmt->close();
 $conn->close();
-?>
+echo json_encode($response);

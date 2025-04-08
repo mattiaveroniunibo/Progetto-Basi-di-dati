@@ -1,7 +1,10 @@
 <?php
-include 'db_connect.php';
+include("db_connect.php");
+require_once("mongo_logger.php");
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$response = ["success" => false, "message" => ""];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = $_POST["email"];
     $nickname = $_POST["nickname"];
     $password = $_POST["password"];
@@ -10,17 +13,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $anno_nascita = $_POST["anno_nascita"];
     $luogo_nascita = $_POST["luogo_nascita"];
 
-    $sql = "CALL RegistraUtente(?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare("CALL RegistraUtente(?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssssss", $email, $nickname, $password, $nome, $cognome, $anno_nascita, $luogo_nascita);
 
     if ($stmt->execute()) {
-        echo json_encode(["success" => true, "message" => "Registrazione avvenuta con successo."]);
+        $response["success"] = true;
+        $response["message"] = "Registrazione completata con successo!";
+        logEvento("Nuovo utente registrato", $email);
     } else {
-        echo json_encode(["success" => false, "message" => "Errore nella registrazione."]);
+        $response["message"] = "Errore durante la registrazione.";
     }
 
     $stmt->close();
     $conn->close();
 }
+
+echo json_encode($response);
 ?>
