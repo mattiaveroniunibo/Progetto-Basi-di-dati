@@ -46,26 +46,24 @@ CREATE TABLE CREATORE (
     FOREIGN KEY (Email) REFERENCES UTENTE(Email) ON DELETE CASCADE
 );
 
--- Creazione della tabella FOTOGRAFIA (nuova entità per gestire le immagini)
-CREATE TABLE FOTOGRAFIA (
+-- Rimuoviamo la tabella FOTOGRAFIA, sostituita con FOTO
+-- Creazione della tabella FOTO (ID, Nome_Progetto)
+CREATE TABLE FOTO (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    percorso VARCHAR(255) NOT NULL,
-    descrizione TEXT,
-    data_inserimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    Nome_Progetto VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
 );
 
--- Creazione della tabella PROGETTO (rimosso campo Foto, aggiunto idFoto)
+-- Creazione della tabella PROGETTO (rimosso idFoto)
 CREATE TABLE PROGETTO(
     Nome VARCHAR(100) PRIMARY KEY,
     Descrizione TEXT NOT NULL,
     Data_Inserimento DATE NOT NULL,
-    idFoto INT,                         -- Riferimento alla fotografia
     Stato ENUM('aperto', 'chiuso') NOT NULL,
     Budget DECIMAL(10,2) NOT NULL,
     Data_Limite DATE NOT NULL,
     Email_Creatore VARCHAR(100) NOT NULL,
-    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE,
-    FOREIGN KEY (idFoto) REFERENCES FOTOGRAFIA(id) ON DELETE SET NULL
+    FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE
 );
 
 -- Creazione della tabella HARDWARE
@@ -143,12 +141,10 @@ CREATE TABLE RISPOSTA(
     FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE
 );
 
--- Creazione della tabella REWARD (rimosso campo Foto, aggiunto idFoto)
+-- Creazione della tabella REWARD (rimosso idFoto)
 CREATE TABLE REWARD(
     Codice VARCHAR(100) PRIMARY KEY,
-    Descrizione TEXT NOT NULL,
-    idFoto INT,
-    FOREIGN KEY (idFoto) REFERENCES FOTOGRAFIA(id) ON DELETE SET NULL
+    Descrizione TEXT NOT NULL
 );
 
 -- Creazione della tabella PROGETTO_REWARD
@@ -275,29 +271,28 @@ CREATE PROCEDURE InserisciCandidatura(
 BEGIN
     DECLARE v_Count INT;
 
-    -- Verifica se l'utente possiede tutte le skill richieste
     SELECT COUNT(*) INTO v_Count
     FROM (
         SELECT sr.Competenza, sr.Livello
         FROM SKILL_RICHIESTA sr
         LEFT JOIN SKILL_CURRICULUM sc 
-            ON sc.Email_Utente = p_Email AND sc.Competenza = sr.Competenza AND sc.Livello >= sr.Livello
-        WHERE sr.ID_Profilo = p_IDProfilo AND sc.Email_Utente IS NULL
+            ON sc.Email_Utente = p_Email 
+               AND sc.Competenza = sr.Competenza 
+               AND sc.Livello >= sr.Livello
+        WHERE sr.ID_Profilo = p_IDProfilo 
+          AND sc.Email_Utente IS NULL
     ) AS Mancanti;
 
-    -- Se ci sono skill mancanti, errore
     IF v_Count > 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'L utente non possiede tutte le skill richieste per questo profilo';
     ELSE
-        -- Se tutto ok, inserisce la candidatura
         INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
         VALUES (FALSE, p_Email, p_IDProfilo);
     END IF;
 END $$
 
 DELIMITER ;
-
 
 -- Stored Procedure per accettare una candidatura
 DELIMITER $$
@@ -313,7 +308,6 @@ BEGIN
 END $$
 
 DELIMITER ;
-
 
 -- Stored Procedure per inserire una nuova skill
 DELIMITER $$
@@ -377,8 +371,8 @@ CREATE PROCEDURE InserisciReward(
     IN p_NomeProgetto VARCHAR(100)
 )
 BEGIN
-    INSERT INTO REWARD (Codice, Descrizione, idFoto)
-    VALUES (p_Codice, p_Descrizione, p_idFoto);
+    INSERT INTO REWARD (Codice, Descrizione)
+    VALUES (p_Codice, p_Descrizione);
 
     INSERT INTO PROGETTO_REWARD (Nome_Progetto, Codice_Reward)
     VALUES (p_NomeProgetto, p_Codice);
@@ -416,7 +410,6 @@ END $$
 
 DELIMITER ;
 
-
 -- PROCEDURE: Inserimento Skill Curriculum
 DELIMITER $$
 CREATE PROCEDURE InserisciSkillCurriculum(
@@ -445,9 +438,9 @@ END $$
 -- TRIGGER (opzionale): Validazione livello skill (esempio)
 -- Per evitare livelli non validi, ma hai già CHECK nel campo
 
+
 DELIMITER ;
 
--- Trigger per aggiornare l'affidabilita del creatore
 DELIMITER $$
 
 CREATE TRIGGER AggiornaAffidabilita
@@ -459,24 +452,31 @@ BEGIN
     DECLARE v_Totale INT DEFAULT 0;
     DECLARE v_NuovaAffidabilita DECIMAL(5,2);
 
+
     -- Email del creatore del progetto finanziato
+
     SELECT Email_Creatore INTO v_CreatoreEmail
     FROM PROGETTO
     WHERE Nome = NEW.Nome_Progetto;
 
     -- Numero progetti finanziati almeno una volta
+
     SELECT COUNT(DISTINCT p.Nome)
     INTO v_Finanziati
     FROM PROGETTO p
     JOIN FINANZIAMENTO f ON f.Nome_Progetto = p.Nome
     WHERE p.Email_Creatore = v_CreatoreEmail;
 
+
     -- Totale progetti del creatore
+
     SELECT COUNT(*) INTO v_Totale
     FROM PROGETTO
     WHERE Email_Creatore = v_CreatoreEmail;
 
+
     -- Calcolo e aggiornamento affidabilità
+
     IF v_Totale > 0 THEN
         SET v_NuovaAffidabilita = CAST(v_Finanziati AS DECIMAL(5,2)) / CAST(v_Totale AS DECIMAL(5,2));
         UPDATE CREATORE
@@ -486,6 +486,7 @@ BEGIN
 END $$
 
 DELIMITER ;
+
 
 DELIMITER $$
 
@@ -498,14 +499,18 @@ BEGIN
     DECLARE v_NuovaAffidabilita DECIMAL(5,2);
 
     -- Conta progetti finanziati almeno una volta
+
     SELECT COUNT(DISTINCT p.Nome)
     INTO v_Finanziati
     FROM PROGETTO p
     JOIN FINANZIAMENTO f ON f.Nome_Progetto = p.Nome
     WHERE p.Email_Creatore = NEW.Email_Creatore;
 
+
     -- Conta tutti i progetti del creatore
-    SELECT COUNT(*) INTO v_Totale
+
+    SELECT COUNT(*)
+    INTO v_Totale
     FROM PROGETTO
     WHERE Email_Creatore = NEW.Email_Creatore;
 
@@ -520,7 +525,6 @@ END $$
 
 DELIMITER ;
 
-
 -- Trigger per cambiare lo stato di un progetto quando il budget è raggiunto
 DELIMITER $$
 
@@ -532,16 +536,19 @@ BEGIN
     DECLARE v_Budget DECIMAL(10,2);
 
     -- Calcola la somma dei finanziamenti per il progetto
+
     SELECT SUM(Importo) INTO v_TotaleFinanziamenti
     FROM FINANZIAMENTO
     WHERE Nome_Progetto = NEW.Nome_Progetto;
 
     -- Ottieni il budget del progetto
+
     SELECT Budget INTO v_Budget
     FROM PROGETTO
     WHERE Nome = NEW.Nome_Progetto;
 
     -- Se raggiunto o superato il budget, chiudi il progetto
+
     IF v_TotaleFinanziamenti >= v_Budget THEN
         UPDATE PROGETTO
         SET Stato = 'chiuso'
@@ -611,7 +618,9 @@ JOIN CREATORE c ON p.Email_Creatore = c.Email
 JOIN UTENTE u ON u.Email = c.Email
 GROUP BY p.Nome;
 
+
 -- Dati di esempio
+
 
 -- Inserimento dati nella tabella UTENTE
 INSERT INTO UTENTE (Email, Nickname, Password, Nome, Cognome, Anno_Di_Nascita, Luogo_Di_Nascita)
@@ -655,93 +664,49 @@ INSERT INTO CREATORE (Email, Affidabilita) VALUES
 ('mattia.veroni@email.com',0),
 ('sofia.neamtu@email.com',0);
 
-
--- Inserimento dati per la gestione delle immagini
+-- Inserimento dati per la gestione delle immagini 
 
 -- Immagini per i progetti
-INSERT INTO FOTOGRAFIA (percorso, descrizione)
+INSERT INTO FOTO (percorso, descrizione, Nome_Progetto)
 VALUES 
-('smarthome.jpg', 'Foto per SmartHome AI'),
-('edutech.jpg', 'Foto per EduTech Platform'),
-('cybershield.jpg', 'Foto per CyberShield'),
-('autopilot.jpg', 'Foto per AutoPilot System'),
-('ehealth.jpg', 'Foto per E-Health Monitor');
+('smarthome.jpg', 'Foto per SmartHome AI', 'SmartHome AI'),
+('edutech.jpg', 'Foto per EduTech Platform', 'EduTech Platform'),
+('cybershield.jpg', 'Foto per CyberShield', 'CyberShield'),
+('autopilot.jpg', 'Foto per AutoPilot System', 'AutoPilot System'),
+('ehealth.jpg', 'Foto per E-Health Monitor', 'E-Health Monitor');
 
 -- Immagini per le reward
-INSERT INTO FOTOGRAFIA (percorso, descrizione)
+-- (ipotesi: associamo ognuna a un progetto esistente, ad esempio:)
+INSERT INTO FOTO (percorso, descrizione, Nome_Progetto)
 VALUES 
-('beta_access.jpg', 'Foto per Reward RWD1'),
-('tshirt.jpg', 'Foto per Reward RWD2'),
-('mention.jpg', 'Foto per Reward RWD3'),
-('event_invite.jpg', 'Foto per Reward RWD4'),
-('premium_pack.jpg', 'Foto per Reward RWD5');
+('beta_access.jpg', 'Foto per Reward RWD1', 'SmartHome AI'),
+('tshirt.jpg', 'Foto per Reward RWD2', 'EduTech Platform'),
+('mention.jpg', 'Foto per Reward RWD3', 'CyberShield'),
+('event_invite.jpg', 'Foto per Reward RWD4', 'AutoPilot System'),
+('premium_pack.jpg', 'Foto per Reward RWD5', 'E-Health Monitor');
 
 
--- Inserimento dati nella tabella PROGETTO (utilizzando gli idFoto appena inseriti)
-
-INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, idFoto, Stato, Budget, Data_Limite, Email_Creatore)
+-- Inserimento dati nella tabella PROGETTO
+INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Stato, Budget, Data_Limite, Email_Creatore)
 VALUES
-('SmartHome AI',
- 'Sistema di automazione domestica basato su AI',
- '2025-03-01',
- 1,  -- idFoto corrispondente a 'smarthome.jpg'
- 'aperto',
- 5000,
- '2025-06-01',
- 'dalia.barone@email.com'),
+('SmartHome AI','Sistema di automazione domestica basato su AI','2025-03-01','aperto',5000,'2025-06-01','dalia.barone@email.com'),
+('EduTech Platform','Piattaforma di e-learning avanzata','2025-02-20','aperto',8000,'2025-05-15','mattia.veroni@email.com'),
+('CyberShield','Firewall AI per la sicurezza informatica','2025-01-15','chiuso',12000,'2025-04-30','sofia.neamtu@email.com'),
+('AutoPilot System','Sistema di guida autonoma per auto','2025-02-10','aperto',15000,'2025-08-01','dalia.barone@email.com'),
+('E-Health Monitor','Sistema di monitoraggio remoto della salute','2025-03-05','aperto',7000,'2025-06-30','mattia.veroni@email.com');
 
-('EduTech Platform',
- 'Piattaforma di e-learning avanzata',
- '2025-02-20',
- 2,  -- idFoto corrispondente a 'edutech.jpg'
- 'aperto',
- 8000,
- '2025-05-15',
- 'mattia.veroni@email.com'),
-
-('CyberShield',
- 'Firewall AI per la sicurezza informatica',
- '2025-01-15',
- 3,  -- idFoto corrispondente a 'cybershield.jpg'
- 'chiuso',
- 12000,
- '2025-04-30',
- 'sofia.neamtu@email.com'),
-
-('AutoPilot System',
- 'Sistema di guida autonoma per auto',
- '2025-02-10',
- 4,  -- idFoto corrispondente a 'autopilot.jpg'
- 'aperto',
- 15000,
- '2025-08-01',
- 'dalia.barone@email.com'),
-
-('E-Health Monitor',
- 'Sistema di monitoraggio remoto della salute',
- '2025-03-05',
- 5,  -- idFoto corrispondente a 'ehealth.jpg'
- 'aperto',
- 7000,
- '2025-06-30',
- 'mattia.veroni@email.com');
-
-
--- Inserimento dati nelle tabelle HARDWARE e SOFTWARE
-
--- HARDWARE
+-- Inserimento dati nella tabella HARDWARE
 INSERT INTO HARDWARE (Nome)
 VALUES ('SmartHome AI'),
        ('AutoPilot System');
 
--- SOFTWARE
+-- Inserimento dati nella tabella SOFTWARE
 INSERT INTO SOFTWARE (Nome)
 VALUES ('EduTech Platform'),
        ('CyberShield'),
        ('E-Health Monitor');
 
 -- Inserimento dati nella tabella COMPONENTI
-
 INSERT INTO COMPONENTI (Nome, Descrizione, Prezzo, Quantita)
 VALUES
 ('Sensore di Movimento','Sensore per rilevare il movimento in ambienti domestici',20.00,10),
@@ -753,9 +718,6 @@ VALUES
 ('Modulo WiFi','Modulo di connessione WiFi per dispositivi embedded',18.00,10),
 ('Display Touchscreen','Schermo touchscreen per interfaccia utente',75.00,3);
 
-
--- Inserimento dati nella tabella COMPONENTI_HARDWARE
-
 INSERT INTO COMPONENTI_HARDWARE (Nome_Progetto, Nome_Componente)
 VALUES
 ('SmartHome AI','Sensore di Movimento'),
@@ -765,9 +727,7 @@ VALUES
 ('AutoPilot System','Sensore LiDAR'),
 ('AutoPilot System','Batteria al Litio');
 
-
 -- Inserimento dati nella tabella PROFILO
-
 INSERT INTO PROFILO (ID, Nome)
 VALUES
 (1,'Esperto AI'),
@@ -777,9 +737,7 @@ VALUES
 (5,'Data Scientist'),
 (6,'Cloud Architect');
 
-
 -- Inserimento dati nella tabella PROFILO_SOFTWARE
-
 INSERT INTO PROFILO_SOFTWARE (Nome_Progetto, ID_Profilo)
 VALUES
 ('EduTech Platform',1),
@@ -789,9 +747,7 @@ VALUES
 ('E-Health Monitor',5),
 ('E-Health Monitor',6);
 
-
 -- Inserimento dati nella tabella SKILL_RICHIESTA
-
 INSERT INTO SKILL_RICHIESTA (ID_Profilo, Competenza, Livello)
 VALUES
 (1,'AI',4),
@@ -805,20 +761,16 @@ VALUES
 (6,'Cloud Computing',4),
 (6,'Networking',3);
 
-
--- Inserimento dati nella tabella REWARD (utilizzando gli idFoto per le immagini delle reward)
-
-INSERT INTO REWARD (Codice, Descrizione, idFoto)
+-- Inserimento dati nella tabella REWARD
+INSERT INTO REWARD (Codice, Descrizione)
 VALUES
-('RWD1','Accesso beta esclusivo al prodotto', 6),  -- idFoto per 'beta_access.jpg'
-('RWD2','T-shirt personalizzata del progetto', 7),   -- idFoto per 'tshirt.jpg'
-('RWD3','Menzione speciale nel sito ufficiale', 8),    -- idFoto per 'mention.jpg'
-('RWD4','Invito a evento esclusivo di presentazione', 9),  -- idFoto per 'event_invite.jpg'
-('RWD5','Pacchetto premium di funzioni avanzate', 10);  -- idFoto per 'premium_pack.jpg'
-
+('RWD1','Accesso beta esclusivo al prodotto'),
+('RWD2','T-shirt personalizzata del progetto'),
+('RWD3','Menzione speciale nel sito ufficiale'),
+('RWD4','Invito a evento esclusivo di presentazione'),
+('RWD5','Pacchetto premium di funzioni avanzate');
 
 -- Inserimento dati nella tabella FINANZIAMENTO
-
 INSERT INTO FINANZIAMENTO (Importo, Email_Utente, Codice_Reward, Nome_Progetto)
 VALUES
 (100.00, 'dalia.barone@email.com', 'RWD1', 'SmartHome AI'),
@@ -827,9 +779,7 @@ VALUES
 (300.00, 'dalia.barone@email.com', 'RWD4', 'AutoPilot System'),
 (250.00, 'mattia.veroni@email.com', 'RWD5', 'E-Health Monitor');
 
-
 -- Inserimento dati nella tabella CANDIDATURA
-
 INSERT INTO CANDIDATURA (Esito, Email_Utente, ID_Profilo)
 VALUES
 (FALSE, 'dalia.barone@email.com', 1),
