@@ -46,14 +46,6 @@ CREATE TABLE CREATORE (
     FOREIGN KEY (Email) REFERENCES UTENTE(Email) ON DELETE CASCADE
 );
 
--- Rimuoviamo la tabella FOTOGRAFIA, sostituita con FOTO
--- Creazione della tabella FOTO (ID, Nome_Progetto)
-CREATE TABLE FOTO (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    Nome_Progetto VARCHAR(100) NOT NULL,
-    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
-);
-
 -- Creazione della tabella PROGETTO (rimosso idFoto)
 CREATE TABLE PROGETTO(
     Nome VARCHAR(100) PRIMARY KEY,
@@ -66,6 +58,13 @@ CREATE TABLE PROGETTO(
     FOREIGN KEY (Email_Creatore) REFERENCES CREATORE(Email) ON DELETE CASCADE
 );
 
+-- Creazione della tabella FOTO (ID, Nome_Progetto)
+CREATE TABLE FOTO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    percorso VARCHAR(255) NOT NULL,
+    Nome_Progetto VARCHAR(100) NOT NULL,
+    FOREIGN KEY (Nome_Progetto) REFERENCES PROGETTO(Nome) ON DELETE CASCADE
+);
 -- Creazione della tabella HARDWARE
 CREATE TABLE HARDWARE(
     Nome VARCHAR(100) PRIMARY KEY,
@@ -664,28 +663,6 @@ INSERT INTO CREATORE (Email, Affidabilita) VALUES
 ('mattia.veroni@email.com',0),
 ('sofia.neamtu@email.com',0);
 
--- Inserimento dati per la gestione delle immagini 
-
--- Immagini per i progetti
-INSERT INTO FOTO (percorso, descrizione, Nome_Progetto)
-VALUES 
-('smarthome.jpg', 'Foto per SmartHome AI', 'SmartHome AI'),
-('edutech.jpg', 'Foto per EduTech Platform', 'EduTech Platform'),
-('cybershield.jpg', 'Foto per CyberShield', 'CyberShield'),
-('autopilot.jpg', 'Foto per AutoPilot System', 'AutoPilot System'),
-('ehealth.jpg', 'Foto per E-Health Monitor', 'E-Health Monitor');
-
--- Immagini per le reward
--- (ipotesi: associamo ognuna a un progetto esistente, ad esempio:)
-INSERT INTO FOTO (percorso, descrizione, Nome_Progetto)
-VALUES 
-('beta_access.jpg', 'Foto per Reward RWD1', 'SmartHome AI'),
-('tshirt.jpg', 'Foto per Reward RWD2', 'EduTech Platform'),
-('mention.jpg', 'Foto per Reward RWD3', 'CyberShield'),
-('event_invite.jpg', 'Foto per Reward RWD4', 'AutoPilot System'),
-('premium_pack.jpg', 'Foto per Reward RWD5', 'E-Health Monitor');
-
-
 -- Inserimento dati nella tabella PROGETTO
 INSERT INTO PROGETTO (Nome, Descrizione, Data_Inserimento, Stato, Budget, Data_Limite, Email_Creatore)
 VALUES
@@ -694,6 +671,15 @@ VALUES
 ('CyberShield','Firewall AI per la sicurezza informatica','2025-01-15','chiuso',12000,'2025-04-30','sofia.neamtu@email.com'),
 ('AutoPilot System','Sistema di guida autonoma per auto','2025-02-10','aperto',15000,'2025-08-01','dalia.barone@email.com'),
 ('E-Health Monitor','Sistema di monitoraggio remoto della salute','2025-03-05','aperto',7000,'2025-06-30','mattia.veroni@email.com');
+
+-- Immagini per i progetti
+INSERT INTO FOTO (percorso, Nome_Progetto)
+VALUES 
+('smarthome.jpg', 'SmartHome AI'),
+('edutech.jpg', 'EduTech Platform'),
+('cybershield.jpg', 'CyberShield'),
+('autopilot.jpg','AutoPilot System'),
+('ehealth.jpg','E-Health Monitor');
 
 -- Inserimento dati nella tabella HARDWARE
 INSERT INTO HARDWARE (Nome)
