@@ -1,7 +1,7 @@
-// script.js COMPLETO E FUNZIONANTE
+// script.js COMPLETO E AGGIORNATO
 
 // Caricamento dinamico delle pagine
-function loadPage(page) {
+async function loadPage(page) {
     console.log("Loading page:", page);
 
     const isLoggedIn = !!sessionStorage.getItem("userEmail");
@@ -14,20 +14,20 @@ function loadPage(page) {
             </div>
         `;
         return;
-    }    
+    }
 
     if (page === "login") {
         loadLoginPage();
     } else if (page === "profilo") {
         const isAdmin = sessionStorage.getItem("isAdmin") === "1";
         console.log("isAdmin:", isAdmin);
-    
+
         let html = `
             <div class='profilo'>
                 <h2>Il Mio Profilo</h2>
                 <p>Informazioni personali e progetti supportati.</p>
         `;
-    
+
         if (isAdmin) {
             html += `
                 <hr class="my-4">
@@ -50,33 +50,33 @@ function loadPage(page) {
                     </div>
                 </div>
             `;
-
         }
-    
+
         html += `</div>`;
         document.getElementById("content").innerHTML = html;
-    
+
         // Collega il form se l'admin esiste davvero
         if (isAdmin) {
             const skillForm = document.getElementById("skillForm");
             if (skillForm) {
                 skillForm.addEventListener("submit", async function (e) {
                     e.preventDefault();
-    
+
                     const name = document.getElementById("skillName").value;
                     const level = document.getElementById("skillLevel").value;
                     const email = sessionStorage.getItem("userEmail");
-                    
+
                     const formData = new FormData();
                     formData.append("competenza", name);
                     formData.append("livello", level);
                     formData.append("email", email);
-    
+
                     const response = await fetch("aggiungi_skill.php", {
                         method: "POST",
+                        credentials: 'same-origin',
                         body: formData
                     });
-    
+
                     const data = await response.json();
                     alert(data.message);
                 });
@@ -85,13 +85,23 @@ function loadPage(page) {
     } else if (page === "progetti") {
         loadProjects(); // 💥 chiamata alla tua funzione esistente
     } else if (page === "statistiche") {
-        loadStatistics(); // 💥 chiamata alla tua funzione esistente
+        loadStatistics();
+    } else if (page === "dashboard") {
+        try {
+            const resp = await fetch("my_projects.php", { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error("Impossibile caricare la dashboard");
+            const html = await resp.text();
+            document.getElementById("content").innerHTML = html;
+        } catch (err) {
+            document.getElementById("content").innerHTML = `<h2>${err.message}</h2>`;
+        }
     } else {
         document.getElementById("content").innerHTML = `
             <h2>Benvenuto</h2>
             <p>Questa è la home.</p>
         `;
     }
+    
 }
 
 // Caricamento login + registrazione
@@ -151,8 +161,12 @@ async function registerUser(event) {
     formData.append("anno_nascita", document.getElementById("regAnnoNascita").value);
     formData.append("luogo_nascita", document.getElementById("regLuogoNascita").value);
 
-    let response = await fetch("register.php", { method: "POST", body: formData });
-    let data = await response.json();
+    const response = await fetch("register.php", {
+        method: "POST",
+        credentials: 'same-origin',
+        body: formData
+    });
+    const data = await response.json();
 
     alert(data.message);
     if (data.success) {
@@ -162,17 +176,18 @@ async function registerUser(event) {
     }
 }
 
-
 // Stato login
 function checkLoginStatus() {
-    const navLinks = document.querySelector(".nav-links");
+    const navLinks = document.getElementById("navLinks");
     const isLoggedIn = !!sessionStorage.getItem("userEmail");
+    const isCreator  = !!sessionStorage.getItem("isCreator");
 
     if (isLoggedIn) {
         navLinks.innerHTML = `
             <li><a href="#" onclick="loadPage('home')">Home</a></li>
             <li><a href="#" onclick="loadPage('progetti')">Progetti</a></li>
             <li><a href="#" onclick="loadPage('statistiche')">Statistiche</a></li>
+            ${isCreator ? `<li><a href="my_projects.php">Dashboard</a></li>` : ""}
             <li><a href="#" onclick="loadPage('profilo')">Profilo</a></li>
             <li><a href="#" onclick="logout()">Logout</a></li>
         `;
@@ -185,6 +200,7 @@ function checkLoginStatus() {
         `;
     }
 }
+
 
 // Login utente/admin
 async function loginUser(event) {
@@ -202,6 +218,7 @@ async function loginUser(event) {
 
     const response = await fetch("login.php", {
         method: "POST",
+        credentials: 'same-origin',
         body: formData
     });
 
@@ -217,32 +234,43 @@ async function loginUser(event) {
             sessionStorage.removeItem("isAdmin");
         }
 
-        checkLoginStatus(); // 🔄 aggiorna navbar
-        loadPage("profilo"); // ✅ porta sempre a profilo
+        if (data.creator === "1") {
+            sessionStorage.setItem("isCreator", "1");
+        } else {
+            sessionStorage.removeItem("isCreator");
+        }
+
+        checkLoginStatus();          // aggiorna la navbar
+        loadPage("profilo");         // nessun redirect automatico
     }
 }
 
 // Logout
 async function logout() {
-    let response = await fetch("logout.php");
-    let data = await response.json();
+    const response = await fetch("logout.php", {
+        credentials: 'same-origin'
+    });
+    const data = await response.json();
 
     if (data.success) {
         sessionStorage.removeItem("userEmail");
+        sessionStorage.removeItem("isAdmin");
+        sessionStorage.removeItem("isCreator");
         checkLoginStatus();
         loadPage("home");
     }
 }
 
-
 // Funzione per caricare i progetti dal database
 async function loadProjects() {
     try {
-        let response = await fetch("get_projects.php");
+        const response = await fetch("get_projects.php", {
+            credentials: 'same-origin'
+        });
         if (!response.ok) {
             throw new Error("Errore nel caricamento dei dati");
         }
-        let projects = await response.json();
+        const projects = await response.json();
         let container = document.getElementById("content");
 
         let html = `<div class='progetti'><h2>Progetti Disponibili</h2><div class="project-list">`;
@@ -269,11 +297,13 @@ async function loadProjects() {
 // Funzione per caricare le statistiche dal database
 async function loadStatistics() {
     try {
-        let response = await fetch("get_statistics.php");
+        const response = await fetch("get_statistics.php", {
+            credentials: 'same-origin'
+        });
         if (!response.ok) {
             throw new Error("Errore nel caricamento delle statistiche");
         }
-        let stats = await response.json();
+        const stats = await response.json();
         console.log(stats); // per debug
 
         let container = document.getElementById("content");
@@ -314,3 +344,11 @@ document.addEventListener("DOMContentLoaded", () => {
     checkLoginStatus();
     loadPage("home");
 });
+
+
+
+
+
+
+
+

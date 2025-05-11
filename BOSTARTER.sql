@@ -379,7 +379,8 @@ END $$
 
 DELIMITER ;
 
--- PROCEDURE: Inserimento Profilo Richiesto
+/* ---- PROCEDURE: Inserimento Profilo Richiesto (FIX) ---- */
+DROP PROCEDURE IF EXISTS InserisciProfiloRichiesto;
 DELIMITER $$
 
 CREATE PROCEDURE InserisciProfiloRichiesto(
@@ -388,11 +389,19 @@ CREATE PROCEDURE InserisciProfiloRichiesto(
     IN p_NomeProgetto VARCHAR(100)
 )
 BEGIN
-    INSERT INTO PROFILO_RICHIESTO (ID, Nome, Nome_Progetto)
-    VALUES (p_ID, p_NomeProfilo, p_NomeProgetto);
+    /* 1. Se il profilo non esiste lo crea (PK ID) */
+    INSERT INTO PROFILO (ID, Nome)
+    VALUES (p_ID, p_NomeProfilo)
+    ON DUPLICATE KEY UPDATE Nome = VALUES(Nome);
+
+    /* 2. Collega il profilo al progetto software */
+    INSERT IGNORE INTO PROFILO_SOFTWARE (Nome_Progetto, ID_Profilo)
+    VALUES (p_NomeProgetto, p_ID);
 END $$
 
-DELIMITER;
+DELIMITER ;
+/* ---- fine FIX ---- */
+
 
 -- PROCEDURE: Risposta a un commento
 DELIMITER $$
