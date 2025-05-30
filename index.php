@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<?php include 'footer.php'; ?>
+
 
 <body>
 
@@ -18,5 +18,7 @@
     <div id="content" class="content-container"></div>
 
     <script src="script.js"></script>
+
+    <?php include 'footer.php'; ?>
 </body>
 </html>

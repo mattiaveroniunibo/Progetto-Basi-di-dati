@@ -25,7 +25,7 @@ if ($isLogged) {
 <nav class="navbar">
     <div class="logo"><a href="index.php">BOSTARTER</a></div>
     <ul class="nav-links" id="navLinks">
-        <li><a href="#" onclick="loadPage('home')">Home</a></li>
+
         <li><a href="#" onclick="loadPage('progetti')">Progetti</a></li>
         <li><a href="#" onclick="loadPage('statistiche')">Statistiche</a></li>
         <?php if ($isCreator): ?>
